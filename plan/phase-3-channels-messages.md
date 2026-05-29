@@ -4,23 +4,23 @@ Implement the data layer: list channels, fetch message history, and load thread 
 
 ## Goals
 
-- [ ] `listChannels()` returns all channel types (public, private, DMs, group DMs) the user has access to
-- [ ] `listChannels()` passes `exclude_archived: true` — archived channels never appear in the list
-- [ ] Channel list handles pagination — fetches all pages, not just the first 200
-- [ ] DM channels display the other user's name instead of a raw ID
-- [ ] `fetchHistory()` returns messages in **chronological order** (oldest first) — results from the API are reversed before returning
-- [ ] `fetchHistory()` returns messages with resolved display names, human-readable timestamps, reactions, and file metadata
-- [ ] `fetchHistory()` supports cursor-based pagination and returns `hasMore` + `nextCursor`
-- [ ] `fetchHistory()` uses a page size of 200 (Slack's max) rather than the default 100
-- [ ] Messages with `subtype: 'bot_message'` use the `username` field as display name instead of calling `getDisplayName()`
-- [ ] System subtypes (`channel_join`, `channel_leave`, `channel_topic`) are filtered out — they are noise in exports
-- [ ] `fetchThread()` returns all replies for a given thread timestamp, including the parent message
-- [ ] `parseThreadUrl()` correctly parses the p-number format into `channelId` + `threadTs`
-- [ ] `parseThreadUrl()` returns `null` for unrecognised URL formats without throwing
-- [ ] `src/utils/mrkdwn.ts` converts Slack mrkdwn syntax to plain text for terminal display and to the appropriate format for each exporter
-- [ ] Local `Channel`, `Message`, `Reaction`, `FileAttachment` types defined in `src/types/slack.ts`
-- [ ] `README.md` — no changes expected this phase; confirm existing content still accurate
-- [ ] `CLAUDE.md` — Phase 3 marked `complete`; update the Pagination and Thread URL Parsing sections if behaviour differs from the plan; confirm the Project Structure file descriptions for `src/api/` are accurate
+- [x] `listChannels()` returns all channel types (public, private, DMs, group DMs) the user has access to
+- [x] `listChannels()` passes `exclude_archived: true` — archived channels never appear in the list
+- [x] Channel list handles pagination — fetches all pages, not just the first 200
+- [x] DM channels display the other user's name instead of a raw ID
+- [x] `fetchHistory()` returns messages in **chronological order** (oldest first) — results from the API are reversed before returning
+- [x] `fetchHistory()` returns messages with resolved display names, human-readable timestamps, reactions, and file metadata
+- [x] `fetchHistory()` supports cursor-based pagination and returns `hasMore` + `nextCursor`
+- [x] `fetchHistory()` uses a page size of 200 (Slack's max) rather than the default 100
+- [x] Messages with `subtype: 'bot_message'` use the `username` field as display name instead of calling `getDisplayName()`
+- [x] System subtypes (`channel_join`, `channel_leave`, `channel_topic`) are filtered out — they are noise in exports
+- [x] `fetchThread()` returns all replies for a given thread timestamp, including the parent message
+- [x] `parseThreadUrl()` correctly parses the p-number format into `channelId` + `threadTs`
+- [x] `parseThreadUrl()` returns `null` for unrecognised URL formats without throwing
+- [x] `src/utils/mrkdwn.ts` converts Slack mrkdwn syntax to plain text for terminal display and to the appropriate format for each exporter
+- [x] Local `Channel`, `Message`, `Reaction`, `FileAttachment` types defined in `src/types/slack.ts`
+- [x] `README.md` — no changes expected this phase; confirm existing content still accurate
+- [x] `CLAUDE.md` — Phase 3 marked `complete`; update the Pagination and Thread URL Parsing sections if behaviour differs from the plan; confirm the Project Structure file descriptions for `src/api/` are accurate
 
 ## Files to Create
 
