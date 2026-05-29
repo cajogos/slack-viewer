@@ -22,14 +22,14 @@ export function mrkdwnToText(text: string, opts?: { format?: Format }): string {
 
   // Links with display text: <url|text>
   result = result.replace(/<(https?:\/\/[^|>]+)\|([^>]+)>/g, (_, url: string, linkText: string) => {
-    if (fmt === 'html') return `<a href="${url}">${linkText}</a>`
+    if (fmt === 'html') return `<a href="${url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`
     if (fmt === 'markdown') return `[${linkText}](${url})`
     return `${linkText} (${url})`
   })
 
   // Bare links: <url>
   result = result.replace(/<(https?:\/\/[^>]+)>/g, (_, url: string) => {
-    if (fmt === 'html') return `<a href="${url}">${url}</a>`
+    if (fmt === 'html') return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
     return url
   })
 
@@ -41,7 +41,10 @@ export function mrkdwnToText(text: string, opts?: { format?: Format }): string {
 
   // User mentions with resolved name: <@U123|Alice>
   result = result.replace(/<@([A-Z0-9]+)\|([^>]+)>/g, (_, userId: string, name: string) => {
-    if (fmt === 'html') return `<a class="mention" href="https://slack.com/team/${userId}">@${name}</a>`
+    if (fmt === 'html') {
+      const safe = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/_/g, '&#95;').replace(/\*/g, '&#42;')
+      return `<a class="mention" href="https://slack.com/team/${userId}" target="_blank" rel="noopener noreferrer">@${safe}</a>`
+    }
     return `@${name}`
   })
 
@@ -89,7 +92,11 @@ export async function mrkdwnToTextAsync(
 
   const resolved = text.replace(/<@([A-Z0-9]+)>/g, (_, id: string) => {
     const name = nameMap.get(id) ?? id
-    return format === 'html' ? `<a class="mention" href="https://slack.com/team/${id}">@${name}</a>` : `@${name}`
+    if (format === 'html') {
+      const safe = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/_/g, '&#95;').replace(/\*/g, '&#42;')
+      return `<a class="mention" href="https://slack.com/team/${id}" target="_blank" rel="noopener noreferrer">@${safe}</a>`
+    }
+    return `@${name}`
   })
 
   return mrkdwnToText(resolved, { format })

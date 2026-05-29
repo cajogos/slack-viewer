@@ -99,10 +99,10 @@ function renderMessage(msg: ExportMessage, isReply = false): string {
   if (msg.files && msg.files.length > 0) {
     html += `  <div class="files">\n`
     for (const f of msg.files) {
-      if (f.mimetype?.startsWith('image/')) {
+      if (f.mimetype?.startsWith('image/') && !f.url.startsWith('http')) {
         html += `    <div class="img-attachment"><img src="${esc(f.url)}" alt="${esc(f.name)}" loading="lazy"></div>\n`
       } else {
-        html += `    <div>📎 <a href="${esc(f.url)}">${esc(f.name)}</a></div>\n`
+        html += `    <div>📎 <a href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">${esc(f.name)}</a></div>\n`
       }
     }
     html += `  </div>\n`
@@ -134,7 +134,6 @@ export function toHtml(doc: ExportDoc): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <base target="_blank" rel="noopener noreferrer">
   <title>${title}</title>
   <style>
 ${CSS.split('\n').map(l => '    ' + l).join('\n')}

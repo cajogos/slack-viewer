@@ -6,6 +6,7 @@ import { select, input } from '@inquirer/prompts'
 import type { WebClient } from '@slack/web-api'
 import { fetchHistory } from '../api/messages.js'
 import { fetchThread, parseThreadUrl } from '../api/threads.js'
+import { resolveMentionIds } from '../utils/mrkdwn.js'
 import { spinner, confirm, inputPath, displayMessages } from './prompts.js'
 import type { Channel } from '../types/slack.js'
 import type { Message } from '../types/slack.js'
@@ -128,7 +129,10 @@ async function doChannelExport(
 
   spin.succeed(`Fetched ${allMessages.length} messages`)
 
-  const doc = buildChannelExportDoc(workspace, channel, allMessages)
+  const exportMessages = format !== 'json'
+    ? await Promise.all(allMessages.map(async m => ({ ...m, text: await resolveMentionIds(m.text, client, workspace) })))
+    : allMessages
+  const doc = buildChannelExportDoc(workspace, channel, exportMessages)
   mkdirSync(dirname(outPath), { recursive: true })
   writeFileSync(outPath, formatDoc(doc, format), 'utf8')
   console.log(chalk.green(`✓ Saved to ${outPath}`))
@@ -136,13 +140,17 @@ async function doChannelExport(
 }
 
 async function doThreadExport(
+  client: WebClient,
   workspace: string,
   channelId: string,
   threadMessages: Message[],
   format: ExportFormat,
   outPath: string
 ): Promise<void> {
-  const doc = buildThreadExportDoc(workspace, channelId, threadMessages)
+  const messages = format !== 'json'
+    ? await Promise.all(threadMessages.map(async m => ({ ...m, text: await resolveMentionIds(m.text, client, workspace) })))
+    : threadMessages
+  const doc = buildThreadExportDoc(workspace, channelId, messages)
   mkdirSync(dirname(outPath), { recursive: true })
   writeFileSync(outPath, formatDoc(doc, format), 'utf8')
   console.log(chalk.green(`✓ Saved to ${outPath}`))
@@ -276,7 +284,7 @@ export async function selectAction(
 
       if (threadAction === 'export') {
         const { format, outPath } = await runExportPrompts(channel)
-        await doThreadExport(workspace, parsed.channelId, messages, format, outPath)
+        await doThreadExport(client, workspace, parsed.channelId, messages, format, outPath)
       }
     }
 

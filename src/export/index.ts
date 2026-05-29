@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
-import { resolve, basename, join } from 'node:path'
+import { resolve, basename, extname, join } from 'node:path'
 import chalk from 'chalk'
 import type { ExportDoc, ExportMessage } from './types.js'
 import { toJson } from './json.js'
@@ -49,7 +49,7 @@ function msgToExport(m: Message): ExportMessage {
     user: m.user,
     text: m.text,
     ...(m.reactions ? { reactions: m.reactions } : {}),
-    ...(m.files ? { files: m.files } : {}),
+    ...(m.files ? { files: m.files.map(f => ({ name: f.name, url: f.url, mimetype: f.mimetype })) } : {}),
     ...(m.replyCount != null ? { replyCount: m.replyCount } : {}),
   }
 }
@@ -99,7 +99,8 @@ async function downloadImages(
   )
   if (imageFiles.length === 0) return messages
 
-  const base = outputPath.replace(/\.[^.]+$/, '')
+  const fileExt = extname(outputPath)
+  const base = fileExt ? outputPath.slice(0, -fileExt.length) : outputPath
   const filesDir = `${base}_files`
   const dirName = basename(filesDir)
   mkdirSync(filesDir, { recursive: true })
@@ -221,7 +222,7 @@ export async function runExportCommand(opts: ExportCommandOpts): Promise<void> {
 
   console.error(`Fetched ${allMessages.length} messages`)
 
-  let exportMessages = await resolveMessageTexts(allMessages, client, teamId)
+  let exportMessages = format !== 'json' ? await resolveMessageTexts(allMessages, client, teamId) : allMessages
 
   const outPath = outputArg ?? defaultOutputPath(found.name.replace(/^#/, ''), format)
 
@@ -274,7 +275,9 @@ export async function runThreadCommand(opts: ThreadCommandOpts): Promise<void> {
     process.exit(1)
   }
 
-  messages = await resolveMessageTexts(messages, client, teamId)
+  if (format !== 'json') {
+    messages = await resolveMessageTexts(messages, client, teamId)
+  }
 
   const outPath = outputArg ?? defaultOutputPath(parsed.channelId.toLowerCase(), format)
 

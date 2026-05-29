@@ -19,7 +19,7 @@ describe('mrkdwnToText', () => {
 
     it('renders mention link in html mode when name is resolved', () => {
       expect(mrkdwnToText('<@U123|Alice>', { format: 'html' })).toBe(
-        '<a class="mention" href="https://slack.com/team/U123">@Alice</a>'
+        '<a class="mention" href="https://slack.com/team/U123" target="_blank" rel="noopener noreferrer">@Alice</a>'
       )
     })
   })
@@ -49,7 +49,7 @@ describe('mrkdwnToText', () => {
 
     it('renders anchor tag in html mode', () => {
       expect(mrkdwnToText('<https://example.com|click here>', { format: 'html' })).toBe(
-        '<a href="https://example.com">click here</a>'
+        '<a href="https://example.com" target="_blank" rel="noopener noreferrer">click here</a>'
       )
     })
 
