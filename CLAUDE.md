@@ -75,29 +75,53 @@ See `workspaces.json.example` for the template.
 
 ```
 src/
-├── index.ts                  Entry point. Loads config, runs auth.test, starts navigation loop.
+├── index.ts                  Entry point. Handles --help/--version, non-interactive subcommands,
+│                             and the interactive navigation loop.
 ├── config/
-│   └── workspaces.ts         Reads workspaces.json, returns WorkspaceProfile[].
+│   └── workspaces.ts         Reads workspaces.json, validates tokens, returns WorkspaceProfile[].
 ├── api/
 │   ├── client.ts             Creates WebClient instances. Wraps calls with 429 handling.
-│   ├── channels.ts           users.conversations — returns Channel[] with pagination.
-│   ├── messages.ts           conversations.history — paginated, resolves user IDs.
+│   ├── channels.ts           users.conversations — returns Channel[] with pagination, archived excluded.
+│   ├── messages.ts           conversations.history — paginated, chronological, resolves user IDs,
+│   │                         handles bot_message subtype, filters system subtypes.
 │   ├── threads.ts            conversations.replies + Slack URL parser.
-│   └── users.ts              users.info with in-memory display-name cache.
+│   └── users.ts              users.info with in-memory display-name cache (scoped per teamId).
 ├── cli/
 │   ├── selectWorkspace.ts    Workspace selection prompt (skipped if only one).
-│   ├── selectChannel.ts      Searchable channel list.
+│   ├── selectChannel.ts      Searchable channel list. "Switch workspace" option if multiple profiles.
+│   │                         Inaccessible channels shown as [no access], not hidden.
 │   ├── selectAction.ts       Per-channel action menu (view / thread / export / back).
+│   │                         Thread view offers "Export this thread".
+│   │                         Export offers date-range filtering.
 │   └── prompts.ts            Shared helpers: spinner, confirm, displayMessages, inputPath.
 ├── export/
 │   ├── types.ts              ExportDoc and ExportMessage interfaces.
 │   ├── json.ts               JSON formatter.
 │   ├── markdown.ts           Markdown formatter.
-│   ├── html.ts               Self-contained HTML formatter.
-│   └── index.ts              formatDoc(), getExtension(), defaultFilename() dispatcher.
+│   ├── html.ts               Self-contained HTML formatter (system-ui font, no external deps).
+│   └── index.ts              formatDoc(), defaultOutputPath(), runExportCommand(), runThreadCommand().
+├── utils/
+│   └── mrkdwn.ts             Slack mrkdwn → plain/markdown/html converter.
 └── types/
     └── slack.ts              Local Channel, Message, Reaction, FileAttachment types.
 ```
+
+## Non-interactive Mode
+
+For scripting and LLM use — no menus, no prompts:
+
+```bash
+# Export a channel
+slack-viewer export --channel general --format json
+slack-viewer export --channel general --format markdown --output ./out.md
+slack-viewer export --channel C12345678 --format html --from 2026-01-01 --to 2026-03-31
+
+# Export a thread
+slack-viewer thread https://workspace.slack.com/archives/C12345678/p1234567890123456 --format json
+slack-viewer thread <url> --format markdown --output ./thread.md
+```
+
+Arg parsing uses `parseArgs` from `node:util` (Node 24 built-in). Required flags missing → exit 1 with usage message. Output defaults to `./exports/<name>-<date>.<ext>`.
 
 ## Key Patterns
 
@@ -117,7 +141,13 @@ All list-fetching functions (`listChannels`, `fetchHistory`, `fetchThread`) hand
 
 ### User Display Names
 
-Never display raw Slack user IDs to the user. Always resolve via `getDisplayName(client, userId)` from `src/api/users.ts`. Resolution order: `profile.display_name` → `real_name` → `id` (fallback).
+Never display raw Slack user IDs to the user. Always resolve via `getDisplayName(client, teamId, userId)` from `src/api/users.ts`. Resolution order: `profile.display_name` → `real_name` → `id` (fallback).
+
+Bot messages (`subtype: 'bot_message'`) have no `user` field — use `message.username` directly. System messages (`channel_join`, `channel_leave`, `channel_topic`) should be filtered out entirely.
+
+### Slack mrkdwn
+
+Message text from the API contains Slack's mrkdwn syntax (`<@U123>`, `<#C123|name>`, `*bold*`, `_italic_`, `<url|text>`). Always pass text through `mrkdwnToText()` or `mrkdwnToTextAsync()` from `src/utils/mrkdwn.ts` before rendering to the terminal or writing to an export. Raw mrkdwn in exports is unreadable.
 
 ### Export Pipeline
 
@@ -168,6 +198,31 @@ main()
 - `"module": "NodeNext"` and `"moduleResolution": "NodeNext"` — all local imports must include the `.js` extension even when importing `.ts` files: `import { foo } from './foo.js'`
 - ESM-only packages (`chalk`, `ora`) must be imported with `import`, not `require`
 - Avoid `any` — use `unknown` and narrow with type guards if the shape is uncertain
+
+## Security
+
+**This is a public repository. Never commit sensitive data.**
+
+| File | Contains | Gitignored? |
+|---|---|---|
+| `workspaces.json` | Slack user tokens (`xoxp-...`) | Yes |
+| `.env` | Any environment secrets | Yes |
+| `exports/` | Exported conversation data | Yes |
+
+Before every push, run a token scan:
+
+```bash
+git grep "xoxp-"
+git log --all -S "xoxp-" --oneline
+```
+
+If a token appears in git history, it must be considered compromised — revoke it at api.slack.com/apps immediately. Rewriting git history does not make a public repo safe.
+
+When generating or suggesting code that handles tokens:
+- Tokens are always read from `workspaces.json` at runtime, never hardcoded
+- Never log or print a token value — not even a truncated version in debug output
+- Never pass tokens as CLI arguments (they appear in shell history and `ps` output)
+- `workspaces.json` is the only place tokens should ever exist on disk
 
 ## Development Notes
 

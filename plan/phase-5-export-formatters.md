@@ -8,11 +8,15 @@ Implement the three output formatters. All formatters take the same `ExportDoc` 
 - [ ] JSON formatter produces valid, pretty-printed JSON with all fields (reactions, files, replies)
 - [ ] Markdown formatter produces clean output: header, messages separated by `---`, replies as blockquotes
 - [ ] HTML formatter produces a standalone file with no external dependencies (no CDN, no network requests)
+- [ ] HTML font stack uses `system-ui, sans-serif` — no `Slack-Lato` (unavailable outside Slack's app)
 - [ ] HTML opens correctly in a browser offline; `<details>` threads expand without JavaScript
 - [ ] HTML text content is HTML-escaped (no XSS if message contains `<script>` etc.)
-- [ ] `defaultFilename()` generates a sensible filename from channel name and export date
-- [ ] All three formats verified against a real channel export
-- [ ] `README.md` — Export Formats table updated with any format nuances discovered during implementation (e.g. HTML offline behaviour, JSON schema shape)
+- [ ] All formatters pass message text through `mrkdwn` converter from `src/utils/mrkdwn.ts` before rendering
+- [ ] `defaultFilename()` generates a sensible filename from channel name and export date; output defaults to `./exports/`
+- [ ] Thread export (`ExportDoc` with a single thread) works correctly in all three formats
+- [ ] Non-interactive `export` and `thread` subcommands (stubbed in Phase 4) are fully wired to the formatters
+- [ ] All three formats verified against a real channel export and a real thread export
+- [ ] `README.md` — Export Formats table updated with any format nuances discovered during implementation (e.g. HTML offline behaviour, JSON schema shape); non-interactive commands confirmed accurate
 - [ ] `CLAUDE.md` — Phase 5 marked `complete`; update the Export Pipeline section with the actual `ExportDoc` shape if it changed; update "Adding New Features → New export format" steps if the pattern differs
 
 ## Files to Create
@@ -126,7 +130,7 @@ Self-contained single HTML file — no external dependencies, works offline.
 
 **Design:**
 - Dark theme inspired by Slack's colour scheme
-- Monospace font stack: `'Slack-Lato', 'ui-monospace', monospace` (falls back gracefully)
+- Font stack: `system-ui, -apple-system, sans-serif` — no `Slack-Lato` (proprietary, unavailable outside Slack's own app)
 - Collapsible thread replies (native `<details>/<summary>` — no JavaScript needed)
 - Emoji reactions as `<span class="reaction">:name: N</span>` badges
 - File attachments as plaintext links
@@ -174,7 +178,7 @@ File extension: `.html`
 
 ## src/export/index.ts
 
-Dispatcher:
+Dispatcher and filename helpers:
 
 ```ts
 type ExportFormat = 'json' | 'markdown' | 'html'
@@ -182,7 +186,18 @@ type ExportFormat = 'json' | 'markdown' | 'html'
 function formatDoc(doc: ExportDoc, format: ExportFormat): string
 function getExtension(format: ExportFormat): string
 function defaultFilename(channel: string, format: ExportFormat): string
-  // e.g. "general-2026-05-29.md"
+  // e.g. "exports/general-2026-05-29.md"
+function defaultOutputPath(channel: string, format: ExportFormat): string
+  // creates ./exports/ directory if it doesn't exist, returns full path
+```
+
+This is also where the non-interactive `export` and `thread` subcommands (stubbed in Phase 4) are fully implemented:
+
+```ts
+async function runExportCommand(args: ParsedArgs): Promise<void>
+  // --channel, --format, --output, --from, --to
+async function runThreadCommand(args: ParsedArgs): Promise<void>
+  // <url>, --format, --output
 ```
 
 ---

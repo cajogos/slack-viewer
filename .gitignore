@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# --- SENSITIVE: never commit these ---
+workspaces.json
+.env
+.env.local
+.env.*.local
+*.secret
+*.key
+*.pem
+
+# Local config overrides
+*.local.json
+*.local.ts
+
+# Exported output (may contain private conversation data)
+exports/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*

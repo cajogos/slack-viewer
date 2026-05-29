@@ -5,11 +5,12 @@ Build the foundation layer: load workspace profiles, create authenticated Slack 
 ## Goals
 
 - [ ] `loadWorkspaces()` reads and validates `workspaces.json`; exits with a clear message if missing or empty
+- [ ] Token format validated at load time — warns if any token does not start with `xoxp-`
 - [ ] `createClient()` returns a configured `WebClient` with retry support
-- [ ] `auth.test` is called on startup to confirm the token is valid; workspace name is extracted
-- [ ] 429 errors are caught and the process sleeps for `retry_after + 0.5s` before retrying
+- [ ] `auth.test` is called on startup to confirm the token is valid; workspace `team_id` and name are extracted
+- [ ] 429 errors are caught and the process sleeps for `retry_after + 0.5s` before retrying (not just once — loops until success or max attempts)
 - [ ] `getDisplayName()` resolves a user ID to a display name
-- [ ] User lookups are cached in memory — repeated calls for the same ID do not make extra API requests
+- [ ] User display-name cache is scoped per workspace (`teamId`) — switching workspaces in the same session does not serve stale names from a previous workspace
 - [ ] Invalid or expired tokens produce a clear error message and exit 1
 - [ ] `README.md` — "Get a Slack user token" and "Create workspaces.json" sections verified against actual setup experience; scope list confirmed complete
 - [ ] `CLAUDE.md` — Phase 2 marked `complete`; update the Rate Limiting and User Display Names sections if the implementation differed from the plan; confirm `withRateLimit` usage note is accurate
@@ -31,6 +32,7 @@ Reads `workspaces.json` from the project root and returns a typed list of profil
 **Responsibilities:**
 - Load and parse `workspaces.json`
 - Validate at least one entry exists
+- Validate token format: warn (but do not exit) if any token does not begin with `xoxp-`
 - Return `WorkspaceProfile[]` — `{ name: string, token: string }`
 - Throw a clear error if the file is missing or malformed
 
@@ -70,14 +72,17 @@ The SDK's `retryConfig` handles network errors and 5xx responses. Slack 429s com
 Fetches Slack user display names with session-scoped in-memory caching.
 
 **Responsibilities:**
-- Maintain a `Map<string, string>` (user ID → display name) per client instance
-- `getDisplayName(client, userId): Promise<string>`
+- Maintain a `Map<string, Map<string, string>>` — outer key is `teamId`, inner key is `userId`, value is display name
+- `getDisplayName(client, teamId, userId): Promise<string>`
   - Return from cache if present
-  - Call `users.info` and cache result
+  - Call `users.info` and cache result under `teamId`
   - Fall back to `userId` if the call fails (deleted user, no permission)
 - Display name resolution order: `profile.display_name` → `real_name` → `id`
 
-**Why cache?**
+**Why scope by teamId?**
+If the user switches workspaces within a session, user IDs can overlap or conflict across workspaces. A flat cache would return stale display names from a previous workspace.
+
+**Why cache at all?**
 A channel export may contain hundreds of messages from a handful of users. Without caching, each message triggers a `users.info` call and quickly exhausts the Tier 4 limit.
 
 ---

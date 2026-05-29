@@ -5,13 +5,19 @@ Implement the data layer: list channels, fetch message history, and load thread 
 ## Goals
 
 - [ ] `listChannels()` returns all channel types (public, private, DMs, group DMs) the user has access to
+- [ ] `listChannels()` passes `exclude_archived: true` — archived channels never appear in the list
 - [ ] Channel list handles pagination — fetches all pages, not just the first 200
 - [ ] DM channels display the other user's name instead of a raw ID
+- [ ] `fetchHistory()` returns messages in **chronological order** (oldest first) — results from the API are reversed before returning
 - [ ] `fetchHistory()` returns messages with resolved display names, human-readable timestamps, reactions, and file metadata
 - [ ] `fetchHistory()` supports cursor-based pagination and returns `hasMore` + `nextCursor`
+- [ ] `fetchHistory()` uses a page size of 200 (Slack's max) rather than the default 100
+- [ ] Messages with `subtype: 'bot_message'` use the `username` field as display name instead of calling `getDisplayName()`
+- [ ] System subtypes (`channel_join`, `channel_leave`, `channel_topic`) are filtered out — they are noise in exports
 - [ ] `fetchThread()` returns all replies for a given thread timestamp, including the parent message
 - [ ] `parseThreadUrl()` correctly parses the p-number format into `channelId` + `threadTs`
 - [ ] `parseThreadUrl()` returns `null` for unrecognised URL formats without throwing
+- [ ] `src/utils/mrkdwn.ts` converts Slack mrkdwn syntax to plain text for terminal display and to the appropriate format for each exporter
 - [ ] Local `Channel`, `Message`, `Reaction`, `FileAttachment` types defined in `src/types/slack.ts`
 - [ ] `README.md` — no changes expected this phase; confirm existing content still accurate
 - [ ] `CLAUDE.md` — Phase 3 marked `complete`; update the Pagination and Thread URL Parsing sections if behaviour differs from the plan; confirm the Project Structure file descriptions for `src/api/` are accurate
@@ -23,6 +29,7 @@ src/api/channels.ts
 src/api/messages.ts
 src/api/threads.ts
 src/types/slack.ts
+src/utils/mrkdwn.ts
 ```
 
 ---
@@ -78,6 +85,8 @@ Lists all channels the authenticated user can access.
 - Returns channels sorted: joined channels first, then alphabetically within each group
 - Uses `withRateLimit` wrapper from `client.ts`
 
+- Pass `exclude_archived: true` — archived channels are not useful for reading or exporting
+
 **Pagination note:** `users.conversations` is Tier 2 (~20 req/min). For workspaces with hundreds of channels, the page-fetching loop should include a small delay (100ms) between pages to stay safe.
 
 ---
@@ -98,8 +107,11 @@ interface FetchHistoryOpts {
 }
 ```
 
-- Calls `conversations.history`
-- Resolves user IDs to display names via `getDisplayName` from `users.ts`
+- Calls `conversations.history` with `limit: 200` (Slack's maximum per page)
+- **Reverses the result** — API returns newest-first; consumers expect oldest-first chronological order
+- Filters out system subtypes: `channel_join`, `channel_leave`, `channel_topic` — these are noise in display and exports
+- Handles `bot_message` subtype: uses `message.username` as the display name instead of calling `getDisplayName()`
+- Resolves user IDs to display names via `getDisplayName` from `users.ts` for all other messages
 - Converts `ts` to a human-readable datetime string (local timezone)
 - Maps `reactions` and `files` arrays to local types
 - Returns `hasMore` and `nextCursor` so the CLI layer can offer "load more"
@@ -138,6 +150,30 @@ The `p` number is the thread timestamp with the decimal point removed (microseco
 i.e., insert a dot 10 digits from the left (Unix seconds part).
 
 Returns `null` for unrecognised URL formats.
+
+---
+
+## src/utils/mrkdwn.ts
+
+Converts Slack's `mrkdwn` markup to readable output. Raw Slack message text contains syntax that is unreadable in exports without this step.
+
+**Function:** `mrkdwnToText(text: string, opts?: { format: 'plain' | 'markdown' | 'html' }): string`
+
+Conversions:
+
+| Slack mrkdwn | plain/terminal | markdown | html |
+|---|---|---|---|
+| `<@U12345>` | `@displayname` (resolved) | `@displayname` | `<span class="mention">@displayname</span>` |
+| `<#C12345\|channel-name>` | `#channel-name` | `#channel-name` | `<span class="channel">#channel-name</span>` |
+| `<https://url\|link text>` | `link text (https://url)` | `[link text](https://url)` | `<a href="https://url">link text</a>` |
+| `<https://url>` | `https://url` | `https://url` | `<a href="https://url">https://url</a>` |
+| `*bold*` | `bold` | `**bold**` | `<strong>bold</strong>` |
+| `_italic_` | `italic` | `_italic_` | `<em>italic</em>` |
+| `` `code` `` | `` `code` `` | `` `code` `` | `<code>code</code>` |
+| `` ```block``` `` | `` ```block``` `` | `` ```\nblock\n``` `` | `<pre><code>block</code></pre>` |
+| `&amp;` `&lt;` `&gt;` | `& < >` | `& < >` | `&amp; &lt; &gt;` |
+
+User mention resolution (`<@U12345>`) calls `getDisplayName()` and is async — the function signature for this variant is `mrkdwnToTextAsync(text, client, teamId, format)`. The sync version passes through raw `<@U12345>` tokens unchanged (used during display where async isn't convenient).
 
 ---
 

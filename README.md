@@ -13,7 +13,7 @@ A read-only CLI tool for navigating Slack workspaces and exporting conversations
 
 ## Requirements
 
-- Node.js 20 or later
+- Node.js 24 or later (see `.nvmrc` — project uses v24.16.0)
 - pnpm 9 or later
 
 ## Installation
@@ -142,6 +142,25 @@ Exports include: message text, timestamps, sender names, emoji reactions, and fi
 HTML exports are self-contained (no external dependencies) and work offline. Thread replies are collapsible.
 
 Default output filename: `<channel>-<date>.<ext>` (e.g. `general-2026-05-29.md`)
+
+## Security
+
+**Never commit `workspaces.json`.** It contains your Slack user token and is gitignored by default. If you accidentally stage it, remove it before committing:
+
+```bash
+git rm --cached workspaces.json
+```
+
+Before pushing to a public repo, verify no tokens are present in git history:
+
+```bash
+git grep "xoxp-"        # should return nothing
+git log --all -S "xoxp-" --oneline   # scan full history
+```
+
+If a token has been committed at any point in history, [revoke it immediately](https://api.slack.com/apps) and generate a new one — git history is permanent and public.
+
+**Exports may contain private conversation data.** The `exports/` directory is gitignored. Do not commit exported files to a public repo.
 
 ## Limitations
 
