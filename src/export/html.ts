@@ -110,7 +110,7 @@ function renderMessage(msg: ExportMessage, isReply = false): string {
 
   if (msg.replies && msg.replies.length > 0) {
     const replyWord = msg.replies.length === 1 ? 'reply' : 'replies'
-    html += `  <details class="replies">\n`
+    html += `  <details class="replies" open>\n`
     html += `    <summary>${msg.replies.length} ${replyWord}</summary>\n`
     for (const reply of msg.replies) {
       html += renderMessage(reply, true)
@@ -134,6 +134,7 @@ export function toHtml(doc: ExportDoc): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base target="_blank" rel="noopener noreferrer">
   <title>${title}</title>
   <style>
 ${CSS.split('\n').map(l => '    ' + l).join('\n')}

@@ -35,9 +35,9 @@ describe('toHtml', () => {
     expect(html).not.toContain('<script>alert(1)</script>')
   })
 
-  it('wraps thread replies in <details> elements', () => {
+  it('wraps thread replies in <details open> elements', () => {
     const html = toHtml(sampleThreadExportDoc)
-    expect(html).toContain('<details class="replies">')
+    expect(html).toContain('<details class="replies" open>')
     expect(html).toContain('<summary>')
   })
 
