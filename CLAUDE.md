@@ -16,7 +16,7 @@ A read-only CLI explorer and export tool for Slack. The user navigates workspace
 | Phase | Name | Status |
 |---|---|---|
 | 1 | Scaffolding | complete |
-| 2 | Config & API Client | pending |
+| 2 | Config & API Client | complete |
 | 3 | Channel & Message Fetching | pending |
 | 4 | CLI Navigation | pending |
 | 5 | Export Formatters | pending |
