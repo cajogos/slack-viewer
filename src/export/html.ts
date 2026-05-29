@@ -42,6 +42,8 @@ time { font-size: 0.8rem; color: #666; }
 .text { color: #d0d0d0; white-space: pre-wrap; word-break: break-word; }
 .text a { color: #7eb8d4; }
 .text .mention { color: #9ecaed; font-weight: 500; }
+.text a.mention { color: #9ecaed; font-weight: 500; text-decoration: none; }
+.text a.mention:hover { text-decoration: underline; }
 .text .channel { color: #7eb8d4; }
 .text code { background: #2a2a3e; padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.9em; }
 .text pre { background: #2a2a3e; padding: 0.75rem; border-radius: 4px; overflow-x: auto; margin: 0.5rem 0; }

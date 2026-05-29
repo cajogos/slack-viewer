@@ -39,7 +39,13 @@ export function mrkdwnToText(text: string, opts?: { format?: Format }): string {
     return `#${name}`
   })
 
-  // User mentions: <@U123> (sync — use raw ID)
+  // User mentions with resolved name: <@U123|Alice>
+  result = result.replace(/<@([A-Z0-9]+)\|([^>]+)>/g, (_, userId: string, name: string) => {
+    if (fmt === 'html') return `<a class="mention" href="https://slack.com/team/${userId}">@${name}</a>`
+    return `@${name}`
+  })
+
+  // User mentions without name: <@U123> (sync — use raw ID as fallback)
   result = result.replace(/<@([A-Z0-9]+)>/g, (_, userId: string) => {
     if (fmt === 'html') return `<span class="mention">@${userId}</span>`
     return `@${userId}`
@@ -83,8 +89,28 @@ export async function mrkdwnToTextAsync(
 
   const resolved = text.replace(/<@([A-Z0-9]+)>/g, (_, id: string) => {
     const name = nameMap.get(id) ?? id
-    return format === 'html' ? `<span class="mention">@${name}</span>` : `@${name}`
+    return format === 'html' ? `<a class="mention" href="https://slack.com/team/${id}">@${name}</a>` : `@${name}`
   })
 
   return mrkdwnToText(resolved, { format })
+}
+
+// Replaces <@U123> tokens with <@U123|displayname> in raw mrkdwn,
+// so the sync mrkdwnToText can render names without an API call.
+export async function resolveMentionIds(
+  text: string,
+  client: WebClient,
+  teamId: string
+): Promise<string> {
+  const ids = [...new Set([...text.matchAll(/<@([A-Z0-9]+)>/g)].map(m => m[1]))]
+  if (ids.length === 0) return text
+
+  const nameMap = new Map(
+    await Promise.all(ids.map(async id => [id, await getDisplayName(client, teamId, id)] as const))
+  )
+
+  return text.replace(/<@([A-Z0-9]+)>/g, (_, id: string) => {
+    const name = nameMap.get(id) ?? id
+    return `<@${id}|${name}>`
+  })
 }

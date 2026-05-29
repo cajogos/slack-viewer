@@ -10,6 +10,8 @@ import { createClient } from '../api/client.js'
 import { listChannels } from '../api/channels.js'
 import { fetchHistory } from '../api/messages.js'
 import { fetchThread, parseThreadUrl } from '../api/threads.js'
+import { resolveMentionIds } from '../utils/mrkdwn.js'
+import type { WebClient } from '@slack/web-api'
 import type { Message } from '../types/slack.js'
 import type { Channel } from '../types/slack.js'
 
@@ -78,6 +80,13 @@ export function buildThreadExportDoc(workspace: string, channelId: string, messa
         }]
       : [],
   }
+}
+
+async function resolveMessageTexts(messages: Message[], client: WebClient, teamId: string): Promise<Message[]> {
+  return Promise.all(messages.map(async m => ({
+    ...m,
+    text: await resolveMentionIds(m.text, client, teamId),
+  })))
 }
 
 async function downloadImages(
@@ -212,11 +221,13 @@ export async function runExportCommand(opts: ExportCommandOpts): Promise<void> {
 
   console.error(`Fetched ${allMessages.length} messages`)
 
+  let exportMessages = await resolveMessageTexts(allMessages, client, teamId)
+
   const outPath = outputArg ?? defaultOutputPath(found.name.replace(/^#/, ''), format)
 
-  const exportMessages = format === 'html'
-    ? await downloadImages(allMessages, outPath, profile.token)
-    : allMessages
+  if (format === 'html') {
+    exportMessages = await downloadImages(exportMessages, outPath, profile.token)
+  }
 
   const doc = buildChannelExportDoc(teamId, found, exportMessages)
   writeFileSync(outPath, formatDoc(doc, format), 'utf8')
@@ -262,6 +273,8 @@ export async function runThreadCommand(opts: ThreadCommandOpts): Promise<void> {
     console.error('Error: No messages found in thread')
     process.exit(1)
   }
+
+  messages = await resolveMessageTexts(messages, client, teamId)
 
   const outPath = outputArg ?? defaultOutputPath(parsed.channelId.toLowerCase(), format)
 

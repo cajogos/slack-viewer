@@ -3,13 +3,23 @@ import { mrkdwnToText } from '../../src/utils/mrkdwn.js'
 
 describe('mrkdwnToText', () => {
   describe('user mentions (sync)', () => {
-    it('renders @userId in plain mode', () => {
+    it('renders @userId in plain mode when no name is present', () => {
       expect(mrkdwnToText('<@U123>')).toBe('@U123')
     })
 
-    it('renders mention span in html mode', () => {
+    it('renders mention span in html mode when no name is present', () => {
       expect(mrkdwnToText('<@U123>', { format: 'html' })).toBe(
         '<span class="mention">@U123</span>'
+      )
+    })
+
+    it('renders @displayname in plain mode when name is resolved', () => {
+      expect(mrkdwnToText('<@U123|Alice>')).toBe('@Alice')
+    })
+
+    it('renders mention link in html mode when name is resolved', () => {
+      expect(mrkdwnToText('<@U123|Alice>', { format: 'html' })).toBe(
+        '<a class="mention" href="https://slack.com/team/U123">@Alice</a>'
       )
     })
   })
