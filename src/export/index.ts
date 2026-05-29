@@ -96,6 +96,8 @@ async function downloadImages(
   mkdirSync(filesDir, { recursive: true })
 
   const urlToRelative = new Map<string, string>()
+  const usedNames = new Set<string>()
+
   for (const file of imageFiles) {
     const privateUrl = file.urlPrivate!
     if (urlToRelative.has(privateUrl)) continue
@@ -108,9 +110,19 @@ async function downloadImages(
         console.error(`Warning: failed to download ${file.name} (HTTP ${res.status})`)
         continue
       }
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_') || `image_${urlToRelative.size}.bin`
-      const localPath = join(filesDir, safeName)
-      writeFileSync(localPath, Buffer.from(await res.arrayBuffer()))
+
+      let safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_') || `image_${urlToRelative.size}.bin`
+      if (usedNames.has(safeName)) {
+        const dot = safeName.lastIndexOf('.')
+        const ext = dot !== -1 ? safeName.slice(dot) : ''
+        const stem = dot !== -1 ? safeName.slice(0, dot) : safeName
+        let n = 2
+        while (usedNames.has(`${stem}_${n}${ext}`)) n++
+        safeName = `${stem}_${n}${ext}`
+      }
+      usedNames.add(safeName)
+
+      writeFileSync(join(filesDir, safeName), Buffer.from(await res.arrayBuffer()))
       urlToRelative.set(privateUrl, `${dirName}/${safeName}`)
     } catch (err) {
       console.error(`Warning: failed to download ${file.name}: ${(err as Error).message}`)
