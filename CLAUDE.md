@@ -94,7 +94,9 @@ src/
 │   ├── selectAction.ts       Per-channel action menu (view / thread / export / back).
 │   │                         Thread view offers "Export this thread".
 │   │                         Export offers date-range filtering.
-│   └── prompts.ts            Shared helpers: spinner, confirm, displayMessages, inputPath.
+│   └── prompts.ts            Shared helpers: spinner, confirm, displayMessages, inputPath,
+│                             userColor(userId) (deterministic 6-color palette by hash),
+│                             formatRelativeTime(ts) (terminal-only relative timestamps).
 ├── export/
 │   ├── types.ts              ExportDoc and ExportMessage interfaces.
 │   ├── json.ts               JSON formatter.
@@ -136,6 +138,31 @@ Slack API has tiered rate limits. The approach:
 
 When adding new API calls, always wrap them with the `withRateLimit` helper from `src/api/client.ts`.
 
+| API Method | Tier | Approx. limit |
+|---|---|---|
+| `conversations.list` | Tier 2 | ~20 req/min |
+| `conversations.history` | Tier 3 | ~50 req/min |
+| `conversations.replies` | Tier 3 | ~50 req/min |
+| `users.info` | Tier 4 | ~100 req/min |
+
+### Message Display
+
+Each message rendered by `displayMessages()` in `src/cli/prompts.ts` uses:
+
+- `[XY]` initials badge (first two letters of display name, uppercased) in the user's deterministic color from `userColor(userId)`.
+- Timestamp: absolute time in dim grey + relative label (`2h ago`, `yesterday`, day name) in dim italic, separated by `·`. Relative labels are terminal-only — exports always use the absolute `ExportMessage.datetime`.
+- Username in bold, colored by `userColor(userId)`.
+- Message text in white, word-wrapped at `process.stdout.columns - 4`.
+- Reactions as `:emoji: ×N` in dim yellow.
+- File attachments as `📎 filename` in dim.
+- A reply indicator `↳ N replies` in dim when `replyCount > 0`.
+- After all messages, a dim footer: `  ↑↓ scroll · L load more · T paste thread URL · E export · B back`
+
+**`userColor` palette** (6 colors, index = `userId.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 6`):
+`chalk.cyan`, `chalk.green`, `chalk.yellow`, `chalk.magenta`, `chalk.blue`, `chalk.red`
+
+**Timestamps** use `Intl.DateTimeFormat` in the user's local timezone. `formatRelativeTime(ts)` takes a Slack `ts` string (float-seconds); convert with `parseFloat(ts) * 1000` before constructing a `Date`.
+
 ### Pagination
 
 All list-fetching functions (`listChannels`, `fetchHistory`, `fetchThread`) handle Slack's cursor-based pagination. They return `{ data, hasMore, nextCursor }` so the caller decides whether to fetch the next page. The CLI layer calls "load more" lazily — it does not pre-fetch all pages.
@@ -160,7 +187,7 @@ Message text from the API contains Slack's mrkdwn syntax (`<@U123>`, `<#C123|nam
 
 The CLI layer builds an `ExportDoc` (defined in `src/export/types.ts`) and passes it to `formatDoc(doc, format)`. Formatters never call the Slack API — they only transform the `ExportDoc`. To add a new export format, add a new file in `src/export/` and register it in `src/export/index.ts`.
 
-**Channel exports do not include reply bodies.** `conversations.history` returns top-level messages and thread parents (with `reply_count` → `ExportMessage.replyCount`) but not the replies. A channel export shows a `↳ N replies` indicator; only a *thread* export (via URL) populates `ExportMessage.replies`. This is intentional — see `plan/overview.md` Non-goals.
+**Channel exports do not include reply bodies.** `conversations.history` returns top-level messages and thread parents (with `reply_count` → `ExportMessage.replyCount`) but not the replies. A channel export shows a `↳ N replies` indicator; only a *thread* export (via URL) populates `ExportMessage.replies`. This is intentional — channel exports are scoped to top-level messages by design.
 
 ### Thread URL Parsing
 
@@ -245,7 +272,6 @@ After finishing each phase or task, always do ALL of the following before stoppi
 
 ## Development Notes
 
-- Phase plan files live in `plan/` — consult them before starting a new phase
 - The `workspaces.json` file used for testing is gitignored; never commit tokens
 - When testing, use a real Slack token — there is no mock/stub layer for the API
 - Channel listing uses `conversations.list` (not `users.conversations`) so unjoined public channels can be shown as `[no access]`. Tradeoff: it enumerates every public channel in the workspace, so the list is larger in big workspaces
