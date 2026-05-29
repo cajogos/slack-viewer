@@ -189,6 +189,7 @@ function defaultFilename(channel: string, format: ExportFormat): string
   // e.g. "exports/general-2026-05-29.md"
 function defaultOutputPath(channel: string, format: ExportFormat): string
   // creates ./exports/ directory if it doesn't exist, returns full path
+  // Use: fs.mkdirSync('./exports', { recursive: true }) — safe to call even if the directory already exists
 ```
 
 This is also where the non-interactive `export` and `thread` subcommands (stubbed in Phase 4) are fully implemented:

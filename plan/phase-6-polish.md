@@ -14,17 +14,21 @@ Harden the tool: error handling, CLI flags, permission edge cases, and user-faci
 - [ ] Export pagination shows progress ("page N, X messages so far") in the spinner text
 - [ ] DM channels display participant names, not raw IDs
 - [ ] Group DM channels list all participant names
+- [ ] After a successful HTML export, a `confirm("Open in browser?")` prompt is shown; if confirmed, the file is opened with `xdg-open` (Linux) or `open` (macOS) via `child_process.exec`
+- [ ] A fifth action `(j)ump to date…` is added to the `selectAction` menu, prompting for a `YYYY-MM-DD` date and calling `fetchHistory` with `oldest` set to that date, then displaying messages from that point forward
+- [ ] `--help` keyboard shortcut table updated to include all shorthand hints (`v`, `t`, `e`, `b`, `j`)
 - [ ] `README.md` fully reviewed end-to-end: Node 24 requirement confirmed, all commands tested, scope list confirmed, export format descriptions accurate, limitations up to date
 - [ ] `CLAUDE.md` — Phase 6 marked `complete`; all Build Status entries updated; review every section for accuracy against the finished implementation; add any non-obvious gotchas or constraints discovered during development to the Development Notes section
 
 ## Changes Across Existing Files
 
 ```
-src/index.ts          ← --help, --version flags
-src/api/client.ts     ← better error messages
-src/api/channels.ts   ← handle no-permission channels
-src/cli/prompts.ts    ← progress indicator for large fetches
-README.md             ← setup and usage guide
+src/index.ts              ← --help, --version flags
+src/api/client.ts         ← better error messages
+src/api/channels.ts       ← handle no-permission channels
+src/cli/prompts.ts        ← progress indicator for large fetches
+src/cli/selectAction.ts   ← jump-to-date action; open-in-browser after HTML export
+README.md                 ← setup and usage guide
 ```
 
 ---
@@ -58,7 +62,15 @@ Configuration:
 Keyboard shortcuts (during navigation):
   Arrow keys   Navigate lists
   Enter        Select
+  Type         Filter channel list
   Ctrl+C       Exit
+
+In-channel shortcuts (shown in action menu):
+  v   View recent messages
+  t   Paste thread URL
+  e   Export channel
+  j   Jump to date
+  b   Back to channel list
 ```
 
 ---
@@ -75,6 +87,41 @@ Keyboard shortcuts (during navigation):
 | Thread URL doesn't parse | Print "Couldn't parse that URL. Expected format: https://workspace.slack.com/archives/..." |
 | Export file write error | Print OS error message |
 | Ctrl+C at any prompt | Exit cleanly (code 0) — `@inquirer/prompts` handles this natively |
+
+---
+
+## Open in Browser After HTML Export
+
+After `formatDoc` writes an HTML file, prompt:
+
+```
+✓ Saved to ./exports/engineering-2026-05-29.html
+? Open in browser? (Y/n)
+```
+
+If confirmed, use `child_process.exec` to open the file:
+
+```ts
+import { exec } from 'node:child_process'
+const opener = process.platform === 'darwin' ? 'open' : 'xdg-open'
+exec(`${opener} "${outputPath}"`)
+```
+
+Only shown for HTML exports — not for JSON or Markdown. Do not `await` the `exec` call; fire and forget.
+
+---
+
+## Jump to Date
+
+A fifth action choice `(j)ump to date…` added to `selectAction.ts`. Choice label: `(j)ump to date…`.
+
+Flow:
+1. `input` prompt: `From date (YYYY-MM-DD):` — validate the format with a simple regex; re-prompt on invalid input
+2. Convert to Unix timestamp: `(new Date(dateStr).getTime() / 1000).toString()`
+3. Spinner while fetching: `Fetching messages from <dateStr>…`
+4. Call `fetchHistory(client, channel.id, { oldest: ts })`
+5. `displayMessages()` with the results — then offer the usual "Load more?" loop
+6. If no messages after that date: print `No messages found after <dateStr>.` and return to action menu
 
 ---
 

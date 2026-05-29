@@ -6,9 +6,21 @@ Wire up the interactive TUI using `@inquirer/prompts`. All navigation is arrow-k
 
 - [ ] Workspace selection is skipped when only one profile is configured
 - [ ] Channel list is searchable (type to filter) and shows channel type prefix and member count
+- [ ] Channel list groups channels by type using separator items: `── Channels ──` and `── Direct Messages ──`
+- [ ] Channel list shows a `── Recent ──` section at the top with the last 5 visited channels (session-scoped, no persistence)
 - [ ] Channel list includes a "Switch workspace" option at the top when multiple profiles are configured
 - [ ] Spinner shown during all API calls
 - [ ] "View recent messages" renders messages with colour: timestamp (dim), username (bold cyan), text (white), reactions (dim yellow)
+- [ ] Each message is prefixed with a two-letter colored initials badge (e.g. `[AC]`), color derived deterministically from `userId` (hash → one of 6 chalk colors)
+- [ ] Messages with `replyCount > 0` show a `↳ N replies` indicator on the following line (dim)
+- [ ] Relative timestamps (`2h ago`, `yesterday`, `Mon`) shown alongside the absolute time in terminal view; absolute timestamps used in all exports
+- [ ] A keyboard shortcut hint footer is printed after each `displayMessages` call (dim): `↑↓ scroll · L load more · T paste thread URL · E export · B back`
+- [ ] The action menu header shows a breadcrumb: `workspace-name › #channel-name`
+- [ ] "View recent messages" shows `(v)iew`, "Paste thread URL" shows `(t)hread`, "Export channel" shows `(e)xport`, "Back" shows `(b)ack` — shorthand hints in choice labels
+- [ ] `mrkdwnToTextAsync` used in display paths where user mention resolution is needed (terminal render); sync `mrkdwnToText` used where async is inconvenient (export pre-processing done by the API layer)
+- [ ] Date range input (`YYYY-MM-DD`) is converted to a Unix timestamp string via `(new Date(dateStr).getTime() / 1000).toString()` before passing to `fetchHistory` as `oldest`/`latest`
+- [ ] `selectChannel` return sentinel `'switch-workspace'` is handled in the main loop before calling `selectAction` — the loop re-runs `selectWorkspace()` when the sentinel is returned
+- [ ] Spinner in `src/index.ts` uses the local variable name `spin` (not `spinner`) to avoid shadowing the imported `spinner()` helper from `prompts.ts`
 - [ ] "Load more" prompt appears when `hasMore` is true; stops when user declines or messages are exhausted
 - [ ] "Paste thread URL" prompt parses the URL and renders the thread; shows a clear error for invalid URLs
 - [ ] After displaying a thread, an "Export this thread" option is offered alongside "Back"
@@ -69,12 +81,17 @@ Shared utilities:
 - `spinner(text)` — returns an `ora` spinner; call `.succeed()` / `.fail()` to finish
 - `confirm(message)` — yes/no prompt using `@inquirer/prompts` `confirm`
 - `inputPath(defaultPath)` — text input with a default value for output file paths
+- `userColor(userId)` — deterministic chalk color function for a user ID. Hash the ID to an index into a fixed palette of 6 colors (`cyan`, `green`, `yellow`, `magenta`, `blue`, `red`). Always returns the same color for the same ID within a session.
+- `formatRelativeTime(ts)` — converts a Slack timestamp string to a relative label: `just now` (<1m), `Nm ago` (<1h), `Nh ago` (<24h), `yesterday`, day name (`Mon`–`Sun`) for the past week, or the absolute date for older. Used for terminal display only — exports always use absolute datetime.
 - `displayMessages(messages)` — renders a list of messages to stdout using `chalk`:
-  - Timestamp in dim grey
-  - Username in bold cyan
-  - Message text in white
+  - Initials badge `[XY]` in the user's deterministic color (first two letters of display name, uppercased)
+  - Timestamp: absolute (`09:12`) in dim grey + relative (`2h ago`) in dim italic, separated by `·`
+  - Username in bold, colored by `userColor(userId)`
+  - Message text in white, wrapped at `process.stdout.columns - 4`
   - Reactions as `:emoji: ×N` in dim yellow
   - File attachments as `📎 filename` in dim
+  - If `replyCount > 0`: a `↳ N replies` line below the message in dim
+  - After all messages, prints a dim footer: `  ↑↓ scroll · L load more · T paste thread URL · E export · B back`
 
 ---
 
@@ -93,12 +110,16 @@ async function selectWorkspace(profiles: WorkspaceProfile[]): Promise<WorkspaceP
 ## src/cli/selectChannel.ts
 
 ```ts
-async function selectChannel(client: WebClient, profiles: WorkspaceProfile[], currentProfile: WorkspaceProfile): Promise<Channel | 'switch-workspace'>
+async function selectChannel(client: WebClient, profiles: WorkspaceProfile[], currentProfile: WorkspaceProfile, recentChannels: Channel[]): Promise<Channel | 'switch-workspace'>
 ```
 
 - Shows a loading spinner while fetching channels
 - Uses `search` prompt type from `@inquirer/prompts` — user types to filter the list
-- If multiple workspace profiles are configured, a "↩ Switch workspace" entry is shown at the top of the list; selecting it returns the sentinel `'switch-workspace'` so `main()` can re-run `selectWorkspace()`
+- If multiple workspace profiles are configured, a "↩ Switch workspace" entry is shown at the top of the list; selecting it returns the sentinel `'switch-workspace'` so `main()` can re-run `selectWorkspace()` and loop again
+- **Recent channels section:** if `recentChannels` is non-empty, inserts a `── Recent ──` separator followed by the last 5 visited channels (most-recent first) before the full list. `recentChannels` is maintained as a session-scoped array in `main()` — no file persistence.
+- **Grouped list:** full channel list is split by type and rendered with separators:
+  - `── Channels ──` — public and private channels
+  - `── Direct Messages ──` — IMs and group DMs
 - Displays channel type prefix:
   - `#` for public channels
   - `🔒` for private channels (accessible)
@@ -106,6 +127,7 @@ async function selectChannel(client: WebClient, profiles: WorkspaceProfile[], cu
   - `💬` for DMs and group DMs
 - Shows member count for channels where available
 - Channels marked `[no access]` are displayed but cannot be selected (disabled choice)
+- After the user selects a channel, the caller (`main()`) prepends it to the `recentChannels` array (capped at 5, deduped by channel ID)
 
 ---
 
@@ -116,6 +138,18 @@ async function selectAction(client: WebClient, workspace: string, channel: Chann
 ```
 
 A `select` prompt with four choices. Runs in a loop until "Back" is chosen.
+
+The prompt header shows a breadcrumb using `chalk`:
+```
+workspace-name › #channel-name
+```
+e.g. `my-company › #engineering` — printed above the choices using `console.log` before the prompt renders.
+
+Choice labels include shorthand hints:
+- `(v)iew recent messages`
+- `(t)hread — paste URL`
+- `(e)xport channel…`
+- `(b)ack to channels`
 
 **View recent messages:**
 - Spinner while fetching
@@ -155,18 +189,38 @@ A `select` prompt with four choices. Runs in a loop until "Back" is chosen.
 ```ts
 async function main() {
   const profiles = loadWorkspaces()      // exit with message if missing/empty
-  const profile = await selectWorkspace(profiles)
-  const client = createClient(profile.token)
+  let profile = await selectWorkspace(profiles)
 
-  // validate token
-  const spinner = spinner('Connecting…')
-  const auth = await client.auth.test()
-  spinner.succeed(`Connected to ${auth.team}`)
+  // session-scoped recent channels list (no file persistence)
+  const recentChannels: Channel[] = []
 
-  // main loop
   while (true) {
-    const channel = await selectChannel(client, auth.team)
-    await selectAction(client, auth.team, channel)
+    const client = createClient(profile.token)
+
+    // validate token — use local variable name `spin` to avoid shadowing the imported `spinner()` helper
+    const spin = spinner('Connecting…')
+    const auth = await client.auth.test()
+    spin.succeed(`Connected to ${auth.team}`)
+
+    // main loop
+    while (true) {
+      const result = await selectChannel(client, profiles, profile, recentChannels)
+
+      if (result === 'switch-workspace') {
+        profile = await selectWorkspace(profiles)
+        recentChannels.length = 0   // clear recents when switching workspace
+        break                        // restart outer loop with new profile
+      }
+
+      // prepend to recents (dedup by id, cap at 5)
+      const channel = result
+      const idx = recentChannels.findIndex(c => c.id === channel.id)
+      if (idx !== -1) recentChannels.splice(idx, 1)
+      recentChannels.unshift(channel)
+      if (recentChannels.length > 5) recentChannels.pop()
+
+      await selectAction(client, auth.team!, channel)
+    }
   }
 }
 
@@ -199,7 +253,10 @@ This mode is what allows LLMs and scripts to drive the tool without navigating m
 - All prompts support Ctrl+C to exit cleanly (process exits with code 0)
 - Long channel lists: `search` prompt handles filtering without truncation
 - Terminal width: wrap message text at `process.stdout.columns - 4` characters
-- Timestamps: displayed in the system's local timezone using `Intl.DateTimeFormat`
+- Timestamps: displayed in the system's local timezone using `Intl.DateTimeFormat`; relative labels via `formatRelativeTime()` for terminal view only
+- Colored initials palette (6 colors): `chalk.cyan`, `chalk.green`, `chalk.yellow`, `chalk.magenta`, `chalk.blue`, `chalk.red` — index = `userId.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 6`
+- Date range `YYYY-MM-DD` → Unix timestamp: `(new Date(dateStr).getTime() / 1000).toString()` — used in export date range flow before passing `oldest`/`latest` to `fetchHistory`
+- `mrkdwnToTextAsync` is used in `displayMessages` (terminal render path) where full mention resolution is needed. `mrkdwnToText` (sync) is used in the export path — the API layer resolves user IDs before building `ExportMessage`, so the sync converter is sufficient for formatters
 
 ---
 
