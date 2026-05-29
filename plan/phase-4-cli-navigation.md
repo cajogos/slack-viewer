@@ -18,7 +18,7 @@ Wire up the interactive TUI using `@inquirer/prompts`. All navigation is arrow-k
 - [ ] The action menu header shows a breadcrumb: `workspace-name › #channel-name`
 - [ ] "View recent messages" shows `(v)iew`, "Paste thread URL" shows `(t)hread`, "Export channel" shows `(e)xport`, "Back" shows `(b)ack` — shorthand hints in choice labels
 - [ ] `mrkdwnToTextAsync` used in display paths where user mention resolution is needed (terminal render); sync `mrkdwnToText` used where async is inconvenient (export pre-processing done by the API layer)
-- [ ] Date range input (`YYYY-MM-DD`) is converted to a Unix timestamp string via `(new Date(dateStr).getTime() / 1000).toString()` before passing to `fetchHistory` as `oldest`/`latest`
+- [ ] Date range input (`YYYY-MM-DD`) is converted to a Unix timestamp string before passing to `fetchHistory`. **`oldest`** = start-of-day; **`latest`** = end-of-day (start of the *next* day) so the end date is **inclusive** — using start-of-day for `latest` would drop the entire end day. Both boundaries are interpreted in UTC (a bare `YYYY-MM-DD` parses as UTC midnight); this is documented so it stays consistent with how timestamps are stored
 - [ ] `selectChannel` return sentinel `'switch-workspace'` is handled in the main loop before calling `selectAction` — the loop re-runs `selectWorkspace()` when the sentinel is returned
 - [ ] Spinner in `src/index.ts` uses the local variable name `spin` (not `spinner`) to avoid shadowing the imported `spinner()` helper from `prompts.ts`
 - [ ] "Load more" prompt appears when `hasMore` is true; stops when user declines or messages are exhausted
@@ -82,8 +82,8 @@ Shared utilities:
 - `confirm(message)` — yes/no prompt using `@inquirer/prompts` `confirm`
 - `inputPath(defaultPath)` — text input with a default value for output file paths
 - `userColor(userId)` — deterministic chalk color function for a user ID. Hash the ID to an index into a fixed palette of 6 colors (`cyan`, `green`, `yellow`, `magenta`, `blue`, `red`). Always returns the same color for the same ID within a session.
-- `formatRelativeTime(ts)` — converts a Slack timestamp string to a relative label: `just now` (<1m), `Nm ago` (<1h), `Nh ago` (<24h), `yesterday`, day name (`Mon`–`Sun`) for the past week, or the absolute date for older. Used for terminal display only — exports always use absolute datetime.
-- `displayMessages(messages)` — renders a list of messages to stdout using `chalk`:
+- `formatRelativeTime(ts)` — converts a Slack timestamp string to a relative label: `just now` (<1m), `Nm ago` (<1h), `Nh ago` (<24h), `yesterday`, day name (`Mon`–`Sun`) for the past week, or the absolute date for older. Used for terminal display only — exports always use absolute datetime. **Note:** Slack `ts` is float-*seconds* as a string, so convert with `parseFloat(ts) * 1000` before constructing a `Date` — passing the raw string to `new Date()` treats it as milliseconds.
+- `displayMessages(client, teamId, messages)` — **async**; renders a list of messages to stdout using `chalk`. It needs `client` + `teamId` because message *text* still contains `<@U123>` mentions that must be resolved via `mrkdwnToTextAsync` (the resolved `user` display-name field only covers the author, not in-body mentions):
   - Initials badge `[XY]` in the user's deterministic color (first two letters of display name, uppercased)
   - Timestamp: absolute (`09:12`) in dim grey + relative (`2h ago`) in dim italic, separated by `·`
   - Username in bold, colored by `userColor(userId)`
@@ -115,18 +115,19 @@ async function selectChannel(client: WebClient, profiles: WorkspaceProfile[], cu
 
 - Shows a loading spinner while fetching channels
 - Uses `search` prompt type from `@inquirer/prompts` — user types to filter the list
+- **Separators + grouping inside `search`:** the `search` prompt resolves choices through a `source(term)` callback invoked on each keystroke. The Recent / `── Channels ──` / `── Direct Messages ──` separators and the "Switch workspace" entry must be rebuilt **inside** that callback for the current filter term — they are not static `choices`. When `term` is empty, return the full grouped structure (with separators); when filtering, return the matching channels (separators can be omitted or regrouped). A `Separator` is non-selectable, and disabled `[no access]` choices use `{ disabled: true }`.
 - If multiple workspace profiles are configured, a "↩ Switch workspace" entry is shown at the top of the list; selecting it returns the sentinel `'switch-workspace'` so `main()` can re-run `selectWorkspace()` and loop again
 - **Recent channels section:** if `recentChannels` is non-empty, inserts a `── Recent ──` separator followed by the last 5 visited channels (most-recent first) before the full list. `recentChannels` is maintained as a session-scoped array in `main()` — no file persistence.
 - **Grouped list:** full channel list is split by type and rendered with separators:
   - `── Channels ──` — public and private channels
   - `── Direct Messages ──` — IMs and group DMs
 - Displays channel type prefix:
-  - `#` for public channels
-  - `🔒` for private channels (accessible)
-  - `🔒 [no access]` for private channels the user can see but is not a member of
+  - `#` for public channels the user has joined (`isMember`)
+  - `# [no access]` for public channels the user has **not** joined — visible via `conversations.list` but not readable until joined
+  - `🔒` for private channels (always accessible — Slack only lists private channels the user belongs to)
   - `💬` for DMs and group DMs
 - Shows member count for channels where available
-- Channels marked `[no access]` are displayed but cannot be selected (disabled choice)
+- Channels marked `[no access]` are displayed but cannot be selected (disabled choice). Private channels are never `[no access]`: if Slack returned it, the user is a member. (See Phase 3 `channels.ts` for why `[no access]` only applies to public channels.)
 - After the user selects a channel, the caller (`main()`) prepends it to the `recentChannels` array (capped at 5, deduped by channel ID)
 
 ---
@@ -236,6 +237,8 @@ main().catch(err => {
 
 Scriptable subcommands parsed via `parseArgs` from `node:util` (built into Node 24 — no third-party dep needed).
 
+**`parseArgs` config:** the subcommand name (`export`/`thread`) and the thread `<url>` are positionals, so `parseArgs` must be called with `allowPositionals: true` — the default is `false` and will throw on the first positional. Read the subcommand from `positionals[0]` and the thread URL from `positionals[1]`. Define `--channel`, `--format`, `--output`, `--from`, `--to` as `options` with `type: 'string'`.
+
 ```
 slack-viewer export --channel <name-or-id> --format json|markdown|html [--output <path>] [--from YYYY-MM-DD] [--to YYYY-MM-DD]
 slack-viewer thread <slack-url> --format json|markdown|html [--output <path>]
@@ -255,7 +258,10 @@ This mode is what allows LLMs and scripts to drive the tool without navigating m
 - Terminal width: wrap message text at `process.stdout.columns - 4` characters
 - Timestamps: displayed in the system's local timezone using `Intl.DateTimeFormat`; relative labels via `formatRelativeTime()` for terminal view only
 - Colored initials palette (6 colors): `chalk.cyan`, `chalk.green`, `chalk.yellow`, `chalk.magenta`, `chalk.blue`, `chalk.red` — index = `userId.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 6`
-- Date range `YYYY-MM-DD` → Unix timestamp: `(new Date(dateStr).getTime() / 1000).toString()` — used in export date range flow before passing `oldest`/`latest` to `fetchHistory`
+- Date range `YYYY-MM-DD` → Unix timestamp, used in the export date-range flow before passing `oldest`/`latest` to `fetchHistory`:
+  - `oldest` (start date): `(Date.parse(dateStr + 'T00:00:00Z') / 1000).toString()`
+  - `latest` (end date, **inclusive**): add one day so the whole end day is included — `((Date.parse(dateStr + 'T00:00:00Z') + 86_400_000) / 1000).toString()`. Using start-of-day here would exclude every message on the end date (e.g. `--to 2026-03-31` would return nothing from March 31)
+  - Boundaries are UTC; `Date.parse('2026-03-31T00:00:00Z')` is explicit about that rather than relying on the platform's local-vs-UTC parsing of bare dates
 - `mrkdwnToTextAsync` is used in `displayMessages` (terminal render path) where full mention resolution is needed. `mrkdwnToText` (sync) is used in the export path — the API layer resolves user IDs before building `ExportMessage`, so the sync converter is sufficient for formatters
 
 ---
@@ -282,6 +288,15 @@ Full navigation flow manually tested:
 3. View messages → load more
 4. Paste a real thread URL → displays replies
 5. Export a channel → file exists with expected content
+
+## Developer Checkpoint
+
+The interactive flow is now demonstrable directly — no probe needed (see the policy in `overview.md`):
+
+- Walk the developer through a live `pnpm dev` session covering each path in the Navigation Flow: workspace select (if multiple), channel search, view + load more, paste thread URL, and the export flow (still stubbed — confirm it prints "coming in Phase 5").
+- Demonstrate Ctrl+C exits cleanly and "Back" returns without crashing.
+- Show the non-interactive stubs respond: `node dist/index.js export --channel general --format json` prints the Phase 5 stub and exits 0.
+- Show `git diff --stat` and `pnpm test` (helper-function tests) passing, then pause for sign-off.
 
 ## Testing
 

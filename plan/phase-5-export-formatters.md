@@ -10,8 +10,8 @@ Implement the three output formatters. All formatters take the same `ExportDoc` 
 - [ ] HTML formatter produces a standalone file with no external dependencies (no CDN, no network requests)
 - [ ] HTML font stack uses `system-ui, sans-serif` — no `Slack-Lato` (unavailable outside Slack's app)
 - [ ] HTML opens correctly in a browser offline; `<details>` threads expand without JavaScript
-- [ ] HTML text content is HTML-escaped (no XSS if message contains `<script>` etc.)
-- [ ] All formatters pass message text through `mrkdwn` converter from `src/utils/mrkdwn.ts` before rendering
+- [ ] HTML text content is HTML-escaped (no XSS if message contains `<script>` etc.) — escaping is performed by `mrkdwnToText(..., { format: 'html' })`, which escapes text segments while emitting its own safe tags; `html.ts` must **not** re-escape the converter's output (that would double-escape `<strong>` etc.)
+- [ ] All formatters pass message text through the `mrkdwn` converter from `src/utils/mrkdwn.ts` before rendering — `format: 'plain'` is never used for exports; use `'markdown'` for `markdown.ts` and `'html'` for `html.ts`
 - [ ] `defaultFilename()` generates a sensible filename from channel name and export date; output defaults to `./exports/`
 - [ ] Thread export (`ExportDoc` with a single thread) works correctly in all three formats
 - [ ] Non-interactive `export` and `thread` subcommands (stubbed in Phase 4) are fully wired to the formatters
@@ -47,13 +47,14 @@ interface ExportDoc {
 
 interface ExportMessage {
   ts: string;               // raw Slack timestamp
-  datetime: string;         // human-readable, local timezone
+  datetime: string;         // human-readable, local timezone (see datetime note below)
   userId: string;
   user: string;             // resolved display name
   text: string;
   reactions?: ExportReaction[];
   files?: ExportFile[];
-  replies?: ExportMessage[];  // only present when exporting a thread or with replies option
+  replyCount?: number;      // present on thread parents in a channel export; lets formatters show "N replies"
+  replies?: ExportMessage[];  // populated ONLY for a thread export; channel exports leave this undefined (only replyCount is set) — see overview.md Non-goals
 }
 
 interface ExportReaction {
@@ -111,10 +112,13 @@ Hello everyone, here's the update...
 
 Rules:
 - Top-level messages separated by `---`
-- Reactions on their own line, prefixed `> `, each as `:name: ×N`
+- Reactions on their own line, prefixed `> `, each as `:name: ×N` (`name` is the Slack shortcode — `thumbsup`, not 👍)
 - File attachments as `📎 name` with URL in parentheses if available
-- Thread replies indented with `> ` blockquote, marked `*(reply)*`
+- Thread replies indented with `> ` blockquote, marked `*(reply)*` — only present for thread exports
+- For a channel export, a parent message with `replyCount > 0` shows a `↳ N replies` line (the reply bodies are not included — see `overview.md` Non-goals)
 - Nested replies (replies within replies) are not common in Slack; flatten to one level
+
+**Datetime consistency:** the per-message line uses `ExportMessage.datetime` (local timezone, as resolved by the API layer). The header's "Exported:" line uses `ExportDoc.exportedAt` (ISO 8601) — render it with an explicit `UTC` suffix only if it is actually UTC; otherwise label it with the local offset. Do not hard-code "UTC" next to a local-timezone value. Pick one convention and apply it identically in the JSON, Markdown, and HTML formatters.
 
 File extension: `.md`
 
@@ -158,7 +162,7 @@ Self-contained single HTML file — no external dependencies, works offline.
       </div>
       <div class="text">Hello everyone…</div>
       <div class="reactions">
-        <span class="reaction">👍 3</span>
+        <span class="reaction">:thumbsup: 3</span>
       </div>
       <details class="replies">
         <summary>2 replies</summary>
@@ -220,6 +224,15 @@ For each format, export a real channel and check:
 - **JSON**: valid JSON, all messages present, reactions/files included
 - **Markdown**: renders correctly in a Markdown viewer; replies indented
 - **HTML**: opens in browser without errors; no broken styles; `<details>` expand correctly; file is standalone (no network requests)
+
+## Developer Checkpoint
+
+Hand the developer real, openable artifacts (see the policy in `overview.md`):
+
+- Export the **same** real channel in all three formats (interactively and via the non-interactive `export` subcommand) and give the developer the three file paths under `./exports/`.
+- Have them open the `.json` (valid, all fields), the `.md` (renders in a viewer, replies indented), and the `.html` (opens offline, `<details>` expand, no network requests — check devtools Network tab is empty).
+- Verify a thread export too, via the `thread <url>` subcommand.
+- Show `git diff --stat` and `pnpm test` passing, then pause for sign-off.
 
 ## Testing
 

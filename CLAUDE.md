@@ -81,7 +81,8 @@ src/
 │   └── workspaces.ts         Reads workspaces.json, validates tokens, returns WorkspaceProfile[].
 ├── api/
 │   ├── client.ts             Creates WebClient instances. Wraps calls with 429 handling.
-│   ├── channels.ts           users.conversations — returns Channel[] with pagination, archived excluded.
+│   ├── channels.ts           conversations.list — returns Channel[] with pagination, archived excluded.
+│   │                         Public channels not joined are marked isMember:false ([no access]).
 │   ├── messages.ts           conversations.history — paginated, chronological, resolves user IDs,
 │   │                         handles bot_message subtype, filters system subtypes.
 │   ├── threads.ts            conversations.replies + Slack URL parser.
@@ -89,7 +90,7 @@ src/
 ├── cli/
 │   ├── selectWorkspace.ts    Workspace selection prompt (skipped if only one).
 │   ├── selectChannel.ts      Searchable channel list. "Switch workspace" option if multiple profiles.
-│   │                         Inaccessible channels shown as [no access], not hidden.
+│   │                         Public channels not joined shown as [no access] (disabled), not hidden.
 │   ├── selectAction.ts       Per-channel action menu (view / thread / export / back).
 │   │                         Thread view offers "Export this thread".
 │   │                         Export offers date-range filtering.
@@ -130,8 +131,8 @@ Arg parsing uses `parseArgs` from `node:util` (Node 24 built-in). Required flags
 Slack API has tiered rate limits. The approach:
 
 1. `@slack/web-api` handles network errors and 5xx retries automatically (`retryConfig: { retries: 3 }`).
-2. Slack 429 errors come back as structured API errors (not HTTP errors), so `client.ts` wraps calls to catch them explicitly, reads `retry_after` from the error, and sleeps `(retry_after * 1000) + 500ms` before retrying.
-3. `users.info` calls are cached in a `Map<string, string>` per session to avoid hammering Tier 4 limits during exports.
+2. Slack 429 errors come back as structured API errors (not HTTP errors), so `client.ts` wraps calls to catch them explicitly, reads `retry_after` from the error, sleeps `(retry_after * 1000) + 500ms`, and retries — **looping** up to a max-attempts cap (a burst can yield several consecutive 429s), then re-throws.
+3. `users.info` results are cached per session to avoid hammering Tier 4 limits during exports. The cache is a `Map<teamId, Map<userId, displayName>>` — scoped per workspace so switching workspaces never serves stale names.
 
 When adding new API calls, always wrap them with the `withRateLimit` helper from `src/api/client.ts`.
 
@@ -149,9 +150,17 @@ Bot messages (`subtype: 'bot_message'`) have no `user` field — use `message.us
 
 Message text from the API contains Slack's mrkdwn syntax (`<@U123>`, `<#C123|name>`, `*bold*`, `_italic_`, `<url|text>`). Always pass text through `mrkdwnToText()` or `mrkdwnToTextAsync()` from `src/utils/mrkdwn.ts` before rendering to the terminal or writing to an export. Raw mrkdwn in exports is unreadable.
 
+**HTML escaping lives in the converter.** In `html` mode the converter escapes text segments (so `<script>` → `&lt;script&gt;`) and emits its own tags (`<strong>`, `<a>`). `src/export/html.ts` treats that output as trusted HTML and must **not** escape it again, or generated tags get double-escaped.
+
+**Slack `ts` is float-seconds.** Convert with `parseFloat(ts) * 1000` before `new Date(...)`; the raw string is not milliseconds.
+
+**Reaction `name` is a shortcode** (`thumbsup`, `+1`), not a glyph. Render as `:name:` — there is no shortcode→emoji map.
+
 ### Export Pipeline
 
 The CLI layer builds an `ExportDoc` (defined in `src/export/types.ts`) and passes it to `formatDoc(doc, format)`. Formatters never call the Slack API — they only transform the `ExportDoc`. To add a new export format, add a new file in `src/export/` and register it in `src/export/index.ts`.
+
+**Channel exports do not include reply bodies.** `conversations.history` returns top-level messages and thread parents (with `reply_count` → `ExportMessage.replyCount`) but not the replies. A channel export shows a `↳ N replies` indicator; only a *thread* export (via URL) populates `ExportMessage.replies`. This is intentional — see `plan/overview.md` Non-goals.
 
 ### Thread URL Parsing
 
@@ -229,3 +238,8 @@ When generating or suggesting code that handles tokens:
 - Phase plan files live in `plan/` — consult them before starting a new phase
 - The `workspaces.json` file used for testing is gitignored; never commit tokens
 - When testing, use a real Slack token — there is no mock/stub layer for the API
+- Channel listing uses `conversations.list` (not `users.conversations`) so unjoined public channels can be shown as `[no access]`. Tradeoff: it enumerates every public channel in the workspace, so the list is larger in big workspaces
+- Export date range: `oldest` = start-of-day, `latest` = **next day's** start so the end date is inclusive (UTC boundaries). Start-of-day for `latest` silently drops the whole end day
+- `displayMessages` is **async** and takes `(client, teamId, messages)` — it resolves in-body `<@U123>` mentions via `mrkdwnToTextAsync`
+- Open-in-browser (Phase 6) uses `child_process.execFile(opener, [path])`, never `exec` with an interpolated string — the output path is user-controlled (shell-injection risk)
+- `parseArgs` (non-interactive mode) needs `allowPositionals: true` — the subcommand and thread URL are positionals

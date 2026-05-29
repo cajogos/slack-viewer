@@ -80,7 +80,6 @@ Key fields:
     "strict": true,
     "outDir": "dist",
     "rootDir": "src",
-    "declaration": true,
     "skipLibCheck": true
   },
   "include": ["src"]
@@ -88,6 +87,8 @@ Key fields:
 ```
 
 Note: `NodeNext` module resolution is required for ESM-compatible packages like `chalk` and `ora`.
+
+`declaration` is intentionally omitted — this is a CLI app, not a library; nothing imports its `.d.ts`, so emitting them only slows the build.
 
 ## .gitignore
 
@@ -119,6 +120,8 @@ Multiple workspaces:
 
 Minimal entry point that prints a startup message — proves the build pipeline works end-to-end before real logic is added.
 
+**Shebang:** the first line must be `#!/usr/bin/env node` so the compiled `dist/index.js` is directly executable as the `slack-viewer` bin. `tsc` preserves a leading shebang in its output. The `bin` field works via `node dist/index.js` regardless; the shebang only matters if the binary is invoked directly (e.g. after `pnpm link`), in which case the file also needs the execute bit (`chmod +x dist/index.js`).
+
 ## Web UI Compatibility
 
 The directory layout established in this phase is the right foundation for a future Web UI. No changes are needed to the structure — the separation between `src/api/`, `src/cli/`, `src/export/`, and `src/config/` means the CLI layer can be replaced by an HTTP server layer without touching anything else.
@@ -139,6 +142,15 @@ git check-ignore -v workspaces.json   # must print the matching .gitignore rule
 git check-ignore -v .env              # must print the matching .gitignore rule
 rm workspaces.json .env               # clean up test files
 ```
+
+## Developer Checkpoint
+
+Before marking Phase 1 complete, hand the scaffold back to the developer (see the policy in `overview.md`):
+
+- Show `git diff --stat` so they can review every created file.
+- Have them run `pnpm install && pnpm build && pnpm dev` and confirm the stub startup message prints.
+- Walk through the gitignore proof from **Verification** (`git check-ignore -v workspaces.json`) so they can see secrets are excluded *before* any real token exists on disk.
+- Pause for sign-off before starting Phase 2.
 
 ## Testing
 
@@ -164,10 +176,11 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    passWithNoTests: true,   // Phase 1 has no tests yet; without this vitest exits 1
   },
 })
 ```
 
 **Update `tsconfig.json`:** add `"tests"` to the `include` array so test files are type-checked by `pnpm typecheck`.
 
-**Verification:** `pnpm test` exits 0 with "no test files found" (passes vacuously). `pnpm typecheck` exits 0.
+**Verification:** `pnpm test` exits 0 (passes vacuously — requires `passWithNoTests: true`; vitest exits 1 on "no test files found" without it). `pnpm typecheck` exits 0.

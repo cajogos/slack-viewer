@@ -56,10 +56,12 @@ Factory that creates a `WebClient` per workspace and wraps calls with rate-limit
 **Responsibilities:**
 - Create `WebClient` with `retryConfig: { retries: 3 }` and `logLevel: LogLevel.WARN`
 - Export `createClient(token: string): WebClient`
-- Provide a `withRateLimit<T>(fn: () => Promise<T>): Promise<T>` wrapper that:
-  - Catches 429 errors
-  - Reads the `retry_after` value from the error
-  - Sleeps `(retry_after * 1000) + 500` ms then retries once more
+- Provide a `withRateLimit<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T>` wrapper that:
+  - Catches 429 errors (Slack returns these as structured API errors with `error.code === 'slack_webapi_platform_error'` / a `data.retry_after`, not as thrown HTTP errors)
+  - Reads the `retry_after` value from the error (defaulting to 1 second if absent)
+  - Sleeps `(retry_after * 1000) + 500` ms, then retries — **looping** up to `maxAttempts` times, since a burst can produce several consecutive 429s
+  - Re-throws the last error once attempts are exhausted
+  - Only treats 429 specially; any other error propagates immediately
 - On startup, call `auth.test` to validate the token and return the workspace name/team ID
 
 **Why not rely solely on SDK retries?**
@@ -105,6 +107,15 @@ pnpm dev
 
 Expected: startup calls `auth.test`, prints `Connected to: <workspace name>`. If `workspaces.json` is missing, prints a clear error and exits.
 
+## Developer Checkpoint
+
+This phase has no menus yet, so demonstrate it with a **temporary probe** (see the policy in `overview.md`):
+
+- Add a throwaway block to `src/index.ts` that calls `loadWorkspaces()`, `createClient()`, and `auth.test`, then prints `Connected to: <workspace name>` and one resolved display name via `getDisplayName()`.
+- Have the developer run `pnpm dev` against their real `workspaces.json` and confirm the connection + name resolution.
+- Also show `pnpm test` passing (mocked — no network).
+- **Remove the probe** and show `git diff --stat` before marking the phase complete. Never print the token, even truncated.
+
 ## Testing
 
 No Slack API calls in tests. `node:fs/promises` is mocked for `workspaces.ts`; `@slack/web-api` is mocked for `client.ts` and `users.ts`; timers are faked for the 429 retry sleep.
@@ -122,9 +133,9 @@ tests/api/users.test.ts
 import { vi } from 'vitest'
 export function createMockClient(overrides = {}) {
   return {
-    auth: { test: vi.fn().mockResolvedValue({ ok: true, user_id: 'U123', team_id: 'T456' }) },
+    auth: { test: vi.fn().mockResolvedValue({ ok: true, user_id: 'U123', team_id: 'T456', team: 'Test Workspace' }) },
     users: { info: vi.fn() },
-    conversations: { list: vi.fn(), history: vi.fn(), replies: vi.fn() },
+    conversations: { list: vi.fn(), history: vi.fn(), replies: vi.fn(), members: vi.fn() },
     ...overrides,
   }
 }
@@ -138,8 +149,10 @@ export function createMockClient(overrides = {}) {
 
 **`tests/api/client.test.ts`** cases:
 - `withRateLimit` resolves normally on success
-- Retries once after a 429 error, sleeping `(retry_after * 1000) + 500ms` (use `vi.useFakeTimers()` + `vi.advanceTimersByTimeAsync()`)
-- Throws after exhausting retries
+- Retries after a 429 error, sleeping `(retry_after * 1000) + 500ms` (use `vi.useFakeTimers()` + `vi.advanceTimersByTimeAsync()`)
+- Loops through repeated 429s: succeeds on a later attempt within `maxAttempts`
+- Throws (re-raises the last 429) after exhausting `maxAttempts`
+- A non-429 error propagates immediately without retrying
 
 **`tests/api/users.test.ts`** cases:
 - Resolves `profile.display_name` when present

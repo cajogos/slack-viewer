@@ -75,19 +75,28 @@ interface FileAttachment {
 
 ## src/api/channels.ts
 
-Lists all channels the authenticated user can access.
+Lists the channels visible to the authenticated user.
 
 **Function:** `listChannels(client): Promise<Channel[]>`
 
-- Calls `users.conversations` with `types: 'public_channel,private_channel,mpim,im'`
+- Calls `conversations.list` with `types: 'public_channel,private_channel,mpim,im'`
 - Handles pagination via `cursor` — fetches all pages
-- For IM channels: resolves the other user's display name as the channel name
+- Sets `isMember` from each conversation's `is_member` field (DMs/group DMs are always member channels)
+- For IM channels (`is_im`): resolves the other user's display name (from the `user` field) as the channel name
 - Returns channels sorted: joined channels first, then alphabetically within each group
 - Uses `withRateLimit` wrapper from `client.ts`
-
 - Pass `exclude_archived: true` — archived channels are not useful for reading or exporting
 
-**Pagination note:** `users.conversations` is Tier 2 (~20 req/min). For workspaces with hundreds of channels, the page-fetching loop should include a small delay (100ms) between pages to stay safe.
+**Why `conversations.list`, not `users.conversations`?**
+`users.conversations` returns only channels the user has **joined**, so it cannot surface public channels the user can see but hasn't joined — yet the UI deliberately shows those as `[no access]` (see Phase 4). `conversations.list` returns:
+- All public channels (joined or not — `is_member` distinguishes them)
+- Private channels, group DMs, and DMs the user **is a member of**
+
+Note that Slack never reveals private channels the user is not in, so `[no access]` only ever applies to **public channels the user hasn't joined** — not private ones.
+
+**Tradeoff:** `conversations.list` enumerates *every* public channel in the workspace, so in large workspaces the list is bigger and takes more paginated calls than `users.conversations` would. If the resulting list is unmanageably large, a future option could filter to members-only; for now the searchable picker (Phase 4) keeps it usable.
+
+**Pagination note:** `conversations.list` is Tier 2 (~20 req/min). For workspaces with hundreds of channels, the page-fetching loop should include a small delay (100ms) between pages to stay safe.
 
 ---
 
@@ -114,7 +123,14 @@ interface FetchHistoryOpts {
 - Resolves user IDs to display names via `getDisplayName` from `users.ts` for all other messages
 - Converts `ts` to a human-readable datetime string (local timezone)
 - Maps `reactions` and `files` arrays to local types
+- Sets `replyCount` from `reply_count` and `threadTs` from `thread_ts` when present, so the CLI can show a `↳ N replies` indicator
 - Returns `hasMore` and `nextCursor` so the CLI layer can offer "load more"
+
+**Thread replies are NOT included here.** `conversations.history` returns only top-level messages and thread *parents* (carrying `reply_count`); it does not return the reply bodies. Fetching replies requires a separate `conversations.replies` call per thread (see `threads.ts`). A channel export therefore contains parents with a reply count but not the reply text — this is the documented behaviour (see `overview.md` Non-goals). To capture a full thread, export it directly via its URL.
+
+**Reaction `name` is a code, not a glyph.** Slack reactions arrive as `{ name: 'thumbsup', count: 3 }` — `name` is the emoji shortcode (`thumbsup`, `+1`, `heart`), not a Unicode character. Renderers display `:name: ×N`; there is no shortcode→glyph mapping in this project, so do not assume `name` can be printed as an emoji directly.
+
+**Timestamp handling.** Slack `ts` values are float-seconds as a string (e.g. `"1700000000.123456"`). When converting to a `Date`, multiply by 1000: `new Date(parseFloat(ts) * 1000)` — passing the raw string to `new Date()` treats it as milliseconds and produces a wrong date.
 
 ---
 
@@ -175,6 +191,8 @@ Conversions:
 
 User mention resolution (`<@U12345>`) calls `getDisplayName()` and is async — the function signature for this variant is `mrkdwnToTextAsync(text, client, teamId, format)`. The sync version passes through raw `<@U12345>` tokens unchanged (used during display where async isn't convenient).
 
+**HTML escaping is owned by this converter, not the formatter.** In `html` mode, `mrkdwnToText` must escape the *text segments* as it parses (so `<script>` in a message becomes `&lt;script&gt;`) while emitting its own tags (`<strong>`, `<a>`, `<code>`) unescaped. The HTML formatter (`src/export/html.ts`) must therefore treat the converter's output as trusted HTML and **must not** escape it again — double-escaping would turn `<strong>` into `&lt;strong&gt;`. This single-ownership rule is what makes the Phase 5 XSS test (`<script>` → `&lt;script&gt;`) pass without breaking formatting.
+
 ---
 
 ## Web UI Compatibility
@@ -200,6 +218,15 @@ A temporary test in `src/index.ts` should:
 3. Call `fetchHistory` on a known channel ID and print the first 3 messages
 4. Call `parseThreadUrl` with a real thread URL and print the parsed result
 
+## Developer Checkpoint
+
+Demonstrate the data layer with the **temporary probe** already described in **Verification** (see the policy in `overview.md`):
+
+- The probe in `src/index.ts` lists the first 5 channels, prints the first 3 messages of a known channel (confirm chronological order and resolved names), and parses a real thread URL.
+- Have the developer run `pnpm dev` and eyeball the output: mrkdwn rendered as plain text, system messages absent, bot messages showing `username`.
+- Show `pnpm test` passing.
+- **Remove the probe** and show `git diff --stat` before marking the phase complete.
+
 ## Testing
 
 `parseThreadUrl` and `mrkdwnToText` are pure functions — no mocks needed. API functions use `createMockClient()` from `tests/__fixtures__/mockClient.ts`.
@@ -215,9 +242,10 @@ tests/utils/mrkdwn.test.ts
 ```
 
 **`tests/api/channels.test.ts`** cases:
-- Returns all accessible channels (excludes archived)
+- Returns all visible channels via `conversations.list` (excludes archived)
 - Merges paginated results across two pages into a single list
-- Marks inaccessible private channels as `[no access]` rather than hiding them
+- Sets `isMember: false` for public channels the user hasn't joined (these become `[no access]` in the picker) and `isMember: true` for joined ones
+- Resolves the IM partner's display name as the channel name for `im` conversations
 
 **`tests/api/messages.test.ts`** cases:
 - Returns messages in chronological order (oldest first — API returns newest first; must be reversed)

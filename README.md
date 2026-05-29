@@ -129,6 +129,24 @@ Example URL format:
 https://myworkspace.slack.com/archives/C12345678/p1234567890123456
 ```
 
+### Non-interactive mode
+
+For scripting (and for LLM tooling), the `export` and `thread` subcommands run without any menus:
+
+```bash
+# Export a channel
+slack-viewer export --channel general --format json
+slack-viewer export --channel general --format markdown --output ./out.md
+slack-viewer export --channel C12345678 --format html --from 2026-01-01 --to 2026-03-31
+
+# Export a thread
+slack-viewer thread https://myworkspace.slack.com/archives/C12345678/p1234567890123456 --format markdown
+```
+
+- `--output` defaults to `./exports/<channel>-<date>.<ext>`
+- `--from` / `--to` take `YYYY-MM-DD` and are **inclusive** date bounds interpreted in **UTC** (the `--to` day is fully included). Omit both to export all history
+- Missing a required flag exits with code 1 and a usage hint
+
 ## Export Formats
 
 | Format | Extension | Best for |
@@ -139,7 +157,11 @@ https://myworkspace.slack.com/archives/C12345678/p1234567890123456
 
 Exports include: message text, timestamps, sender names, emoji reactions, and file attachment names/URLs.
 
-HTML exports are self-contained (no external dependencies) and work offline. Thread replies are collapsible.
+Reactions are shown by their Slack shortcode (e.g. `:thumbsup: ×3`), not as rendered emoji.
+
+**Channel exports include top-level messages and a reply count (`↳ N replies`) for threaded messages, but not the reply text itself.** To capture a full thread, export that thread directly by pasting its URL.
+
+HTML exports are self-contained (no external dependencies) and work offline. Thread replies are collapsible. Message content is HTML-escaped, so opening an export in a browser is safe even if a message contained markup.
 
 Default output filename: `<channel>-<date>.<ext>` (e.g. `general-2026-05-29.md`)
 
@@ -166,5 +188,7 @@ If a token has been committed at any point in history, [revoke it immediately](h
 
 - Read-only — cannot send messages, add reactions, or perform any write operations
 - File contents are not downloaded — only metadata (filename, URL) is included in exports
+- Channel exports do not include thread reply bodies (only a reply count) — export a thread directly for its full replies
+- Public channels you haven't joined are listed but shown as `[no access]` and can't be opened until you join them in Slack. Private channels you aren't in are not visible to the tool at all
 - No real-time updates — this is a point-in-time export tool
 - Bot tokens (`xoxb-`) are not supported — user tokens (`xoxp-`) only

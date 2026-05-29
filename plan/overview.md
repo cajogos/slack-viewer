@@ -16,6 +16,7 @@ A read-only CLI explorer and export tool for Slack. Navigate workspaces and chan
 - Real-time notifications or streaming
 - File downloads (file metadata is exported, not the files themselves)
 - Admin/management operations
+- Reply bodies inside a *channel* export — a channel export includes top-level messages and thread parents (with a reply count), not the reply text. Export a thread directly (via URL) to capture its full replies.
 
 ## Tech Stack
 
@@ -80,11 +81,22 @@ slack-viewer/
 | 5 | Export Formatters | JSON / Markdown / HTML output |
 | 6 | Polish | Error handling, help flags, README |
 
+## Per-Phase Developer Checkpoint
+
+At the end of **every** phase, before marking it `complete`, Claude must hand the work back to the developer with a concrete, runnable way to see and exercise the changes — not merely assert the phase is done. Each phase file has a **Developer Checkpoint** section defining the specifics; the handoff must always include:
+
+1. **What changed** — a short summary and the list of files added/modified (`git diff --stat`).
+2. **How to see it work** — the exact command(s) to run and the expected output. For phases with no user-visible behavior yet, a *temporary* demonstration (a throwaway probe in `src/index.ts` or a one-off script) that proves the new code runs against real data, **plus the exact step to remove it** afterward.
+3. **How to review scope** — point the developer at the diff so they can read it before moving on.
+4. **A pause for sign-off** — explicitly wait for the developer to confirm before starting the next phase.
+
+This is distinct from each phase's **Verification** section: Verification is the acceptance criteria Claude runs itself; the Developer Checkpoint is the developer-facing demo and review handoff. Any temporary demonstration code introduced for a checkpoint must be removed (or reverted) before the phase is marked `complete`.
+
 ## Rate Limiting Summary
 
 | API Method | Tier | Approx. limit |
 |---|---|---|
-| `users.conversations` | Tier 2 | ~20 req/min |
+| `conversations.list` | Tier 2 | ~20 req/min |
 | `conversations.history` | Tier 3 | ~50 req/min |
 | `conversations.replies` | Tier 3 | ~50 req/min |
 | `users.info` | Tier 4 | ~100 req/min |

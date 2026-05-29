@@ -9,7 +9,7 @@ Harden the tool: error handling, CLI flags, permission edge cases, and user-faci
 - [ ] Arg parsing uses `parseArgs` from Node's built-in `node:util` — no third-party CLI framework needed
 - [ ] Missing `workspaces.json` shows setup instructions and exits 1
 - [ ] Expired or invalid token shows a named error ("Token for 'workspace-name' is invalid") and exits 1
-- [ ] Inaccessible private channels appear in the list with a `[no access]` marker and cannot be selected (rather than being silently hidden)
+- [ ] Public channels the user hasn't joined appear in the list with a `[no access]` marker and cannot be selected (rather than being silently hidden); private channels are never marked this way (Slack only lists private channels the user belongs to)
 - [ ] Unparseable thread URL shows the expected format and returns to the action menu
 - [ ] Export pagination shows progress ("page N, X messages so far") in the spinner text
 - [ ] DM channels display participant names, not raw IDs
@@ -35,7 +35,7 @@ README.md                 ← setup and usage guide
 
 ## CLI Flags
 
-Use `parseArgs` from Node's built-in `node:util` — available and stable in Node 24, no third-party dependency needed:
+Use `parseArgs` from Node's built-in `node:util` — available and stable in Node 24, no third-party dependency needed. Call it with `allowPositionals: true` so the `export`/`thread` subcommand and the thread `<url>` (both positionals) parse without throwing; `--help`/`--version` are boolean options:
 
 ```
 slack-viewer --help      Print usage and exit
@@ -81,7 +81,7 @@ In-channel shortcuts (shown in action menu):
 |---|---|
 | `workspaces.json` missing | Print setup instructions, exit 1 |
 | Invalid/expired token | Print "Token for '<name>' is invalid. Check workspaces.json." exit 1 |
-| Channel not accessible (no permission) | Show channel with `[no access]` label in list; cannot be selected |
+| Public channel not joined | Show channel with `[no access]` label in list; cannot be selected. If opened by ID anyway, `not_in_channel` → clear "join in Slack first" message |
 | API rate limit hit (after retries exhausted) | Print "Rate limited. Wait and try again." exit 1 |
 | Network error | Print error message, exit 1 |
 | Thread URL doesn't parse | Print "Couldn't parse that URL. Expected format: https://workspace.slack.com/archives/..." |
@@ -99,15 +99,15 @@ After `formatDoc` writes an HTML file, prompt:
 ? Open in browser? (Y/n)
 ```
 
-If confirmed, use `child_process.exec` to open the file:
+If confirmed, use `child_process.execFile` to open the file:
 
 ```ts
-import { exec } from 'node:child_process'
+import { execFile } from 'node:child_process'
 const opener = process.platform === 'darwin' ? 'open' : 'xdg-open'
-exec(`${opener} "${outputPath}"`)
+execFile(opener, [outputPath])   // args array — no shell, no string interpolation
 ```
 
-Only shown for HTML exports — not for JSON or Markdown. Do not `await` the `exec` call; fire and forget.
+**Use `execFile`, not `exec`.** `exec` runs the command through a shell, so a user-controlled `outputPath` containing `"`, `$(…)`, or `;` becomes a shell-injection vector. `execFile` passes the path as a literal argv entry — no shell, no quoting needed. Only shown for HTML exports — not for JSON or Markdown. Do not `await` the call; fire and forget.
 
 ---
 
@@ -139,9 +139,9 @@ Implementation: update `ora` spinner text in the fetch loop inside `fetchHistory
 
 ## Private Channel / DM Handling
 
-- If the user is not a member of a private channel, `conversations.history` returns `not_in_channel` — catch and display a clear message
-- For DMs (`im` type), display the other user's name instead of a channel ID
-- For group DMs (`mpim` type), list all participant names joined by `, `
+- For a public channel the user hasn't joined (`isMember === false`), `conversations.history` returns `not_in_channel` — catch it and display a clear message ("You haven't joined #channel — join it in Slack to read its history."). (Private channels never hit this: Slack only lists private channels the user already belongs to.)
+- For DMs (`im` type), display the other user's name instead of a channel ID — resolved from the conversation's `user` field via `getDisplayName`
+- For group DMs (`mpim` type), list all participant names joined by `, `. The `mpim` object's name is synthetic (`mpdm-a--b--c-1`), so the real names require a `conversations.members` call (wrapped in `withRateLimit`) followed by `getDisplayName` per member. This is an extra Tier-? call per group DM — only resolve it lazily (when the channel is actually opened or listed), not for every channel up front.
 
 ---
 
@@ -217,6 +217,15 @@ pnpm dev    # prints clear error and exits 1
 # Export → pagination progress visible
 # Output file opens cleanly in browser/editor
 ```
+
+## Developer Checkpoint
+
+Final handoff — demonstrate the polished tool end to end (see the policy in `overview.md`):
+
+- Show `--help` and `--version` output, the jump-to-date action, pagination progress on a large export, and the "Open in browser?" prompt after an HTML export.
+- Demonstrate each error path from the table: missing `workspaces.json`, an invalid token, and an unparseable thread URL — confirm each prints its named message and the right exit code.
+- Walk the developer through the **Pre-publish Security Checklist** together (`git grep "xoxp-"`, history scan) before any push.
+- Show `git diff --stat` and the full `pnpm build && pnpm test` suite passing, then pause for final sign-off.
 
 ## Testing
 
