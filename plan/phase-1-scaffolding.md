@@ -4,19 +4,19 @@ Set up the project skeleton so that TypeScript compiles cleanly and the CLI entr
 
 ## Goals
 
-- [ ] `package.json` created with correct ESM config, bin entry, and all dependencies listed
-- [ ] `package.json` has `engines: { "node": ">=24", "pnpm": ">=9" }` matching `.nvmrc` (v24.16.0)
-- [ ] `package.json` has a `typecheck` script (`tsc --noEmit`) for catching TS errors without building
-- [ ] `dotenv` is NOT in dependencies — tokens come from `workspaces.json`, not `.env`
-- [ ] `tsconfig.json` configured for `NodeNext` module resolution and strict mode
-- [ ] `.gitignore` excludes `node_modules/`, `dist/`, `workspaces.json`, `.env`, `exports/`
-- [ ] `workspaces.json.example` committed as a reference template
-- [ ] `pnpm install` completes without errors
-- [ ] `pnpm build` exits 0 and produces `dist/`
-- [ ] `pnpm typecheck` exits 0
-- [ ] `pnpm dev` runs the stub entry point without errors
-- [ ] `README.md` — Requirements and Installation sections reflect Node 24 and pnpm 9
-- [ ] `CLAUDE.md` — Phase 1 marked `complete` in the Build Status table; Running the Project commands verified
+- [x] `package.json` created with correct ESM config, bin entry, and all dependencies listed
+- [x] `package.json` has `engines: { "node": ">=24", "pnpm": ">=9" }` matching `.nvmrc` (v24.16.0)
+- [x] `package.json` has a `typecheck` script (`tsc --noEmit`) for catching TS errors without building
+- [x] `dotenv` is NOT in dependencies — tokens come from `workspaces.json`, not `.env`
+- [x] `tsconfig.json` configured for `NodeNext` module resolution and strict mode
+- [x] `.gitignore` excludes `node_modules/`, `dist/`, `workspaces.json`, `.env`, `exports/`
+- [x] `workspaces.json.example` committed as a reference template
+- [x] `pnpm install` completes without errors
+- [x] `pnpm build` exits 0 and produces `dist/`
+- [x] `pnpm typecheck` exits 0
+- [x] `pnpm dev` runs the stub entry point without errors
+- [x] `README.md` — Requirements and Installation sections reflect Node 24 and pnpm 9
+- [x] `CLAUDE.md` — Phase 1 marked `complete` in the Build Status table; Running the Project commands verified
 
 ## Files to Create
 
