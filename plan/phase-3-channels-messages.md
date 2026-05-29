@@ -177,6 +177,15 @@ User mention resolution (`<@U12345>`) calls `getDisplayName()` and is async — 
 
 ---
 
+## Web UI Compatibility
+
+The functions in `src/api/` (`listChannels`, `fetchHistory`, `fetchThread`) will become the server-side handlers for a future Web UI's HTTP routes — thin wrappers that call these and return JSON. To keep that migration easy:
+
+- **Return typed data only** — no `console.log`, no formatting, no process output from within `src/api/`
+- **`src/types/slack.ts`** (`Channel`, `Message`, etc.) is the wire format between server and browser; keep it clean and avoid embedding CLI-specific fields
+- **`src/utils/mrkdwn.ts`** runs server-side in both the CLI and Web UI; no changes needed
+- The `{ data, hasMore, nextCursor }` pagination shape maps naturally to a paginated JSON API response
+
 ## Verification
 
 Use a real token in `workspaces.json` and run:

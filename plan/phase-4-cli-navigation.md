@@ -260,6 +260,16 @@ This mode is what allows LLMs and scripts to drive the tool without navigating m
 
 ---
 
+## Web UI Compatibility
+
+`src/cli/` is the layer that will be **replaced** by a frontend in a future Web UI — not reused. That's expected and fine. What matters is that this phase doesn't let CLI concerns leak into the layers below it:
+
+- `src/api/`, `src/export/`, `src/utils/`, and `src/types/` must remain import-free of anything in `src/cli/`
+- `displayMessages`, `spinner`, `userColor`, `formatRelativeTime` are CLI-only helpers — do not call them from the API or export layers
+- The `ExportDoc` type (built in this phase as a stub, completed in Phase 5) is the natural JSON payload a Web UI server would return for an export-preview endpoint
+
+The navigation flow implemented here (workspace → channel → action loop) maps directly to browser page/route transitions. Documenting the flow clearly in this phase makes the Web UI routing design straightforward later.
+
 ## Verification
 
 ```bash

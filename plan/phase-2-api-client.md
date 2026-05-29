@@ -87,6 +87,16 @@ A channel export may contain hundreds of messages from a handful of users. Witho
 
 ---
 
+## Web UI Compatibility
+
+`src/api/` and `src/config/` are the reusable server-side layer that a future Web UI will use unchanged. Keep them clean:
+
+- **No imports from `src/cli/`** — no `chalk`, `ora`, or `@inquirer/prompts` in this layer
+- **No `process.exit()` calls** — throw typed errors instead; the CLI entry point catches and exits, and a future HTTP layer will catch and return a status code
+- **`withRateLimit` and the user display-name cache work as-is** for a local server serving a single user. If multiple browser tabs hit the server concurrently, the per-call retry approach means simultaneous 429s are each retried independently rather than queued — acceptable for a local tool, but worth noting
+
+`WorkspaceProfile` and the `WebClient` factory are the natural building blocks for per-request authenticated Slack clients in a Web UI context.
+
 ## Verification
 
 ```bash

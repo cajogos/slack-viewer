@@ -203,6 +203,16 @@ async function runThreadCommand(args: ParsedArgs): Promise<void>
 
 ---
 
+## Web UI Compatibility
+
+`src/export/` is fully reusable in a Web UI with no changes:
+
+- `formatDoc(doc, format)` runs server-side and the result is streamed as a file download (`Content-Disposition: attachment`)
+- `ExportDoc` is also a clean JSON payload — a Web UI could fetch it directly and render messages in the browser without going through a formatter at all; the formatters then become an optional download path
+- The `toHtml()` output is already a self-contained standalone file, so "open in browser" in the Web UI context is just serving the formatter output inline
+
+The one file-system concern (`defaultOutputPath` with `mkdirSync`) is CLI-specific. In a Web UI the output path concept goes away — the server writes to a temp file or streams directly. Keeping `defaultOutputPath` as a CLI-layer helper (called from `src/cli/`, not from `src/export/index.ts` internals) would make this cleaner. Consider accepting an explicit `outputPath` parameter in `runExportCommand` rather than computing it inside the export module.
+
 ## Verification
 
 For each format, export a real channel and check:

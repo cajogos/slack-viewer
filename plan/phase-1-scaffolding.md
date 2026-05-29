@@ -119,6 +119,12 @@ Multiple workspaces:
 
 Minimal entry point that prints a startup message — proves the build pipeline works end-to-end before real logic is added.
 
+## Web UI Compatibility
+
+The directory layout established in this phase is the right foundation for a future Web UI. No changes are needed to the structure — the separation between `src/api/`, `src/cli/`, `src/export/`, and `src/config/` means the CLI layer can be replaced by an HTTP server layer without touching anything else.
+
+One constraint to enforce from the start: **`src/api/`, `src/config/`, `src/export/`, and `src/utils/` must never import from `src/cli/`**. The CLI is a consumer of those layers, not a dependency. A linter rule or just discipline during code review is sufficient — there is no tooling to add now.
+
 ## Verification
 
 ```bash

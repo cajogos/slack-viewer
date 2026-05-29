@@ -178,6 +178,18 @@ Sections:
 
 ---
 
+## Web UI Compatibility
+
+The polish work in this phase has two Web UI touch-points worth noting:
+
+**Error handling** — the structured error table (`workspaces.json missing`, `invalid token`, `not_in_channel`, etc.) maps directly to HTTP status codes in a future server. Prefer typed, thrown errors in `src/api/` over inline `process.exit()` calls — the CLI catches and exits, and an HTTP handler catches and returns 4xx/5xx. If `src/api/client.ts` currently calls `process.exit()` on auth failure, move that to `src/index.ts` where it belongs.
+
+**`child_process.exec` for browser-open** — this is a CLI-only concern (Phase 6 adds it to `selectAction.ts`). In a Web UI the equivalent is a normal link or the browser's native file download. No changes needed; just confirm this code lives in `src/cli/selectAction.ts` and not deeper in the stack.
+
+Everything else in this phase (help flags, pagination progress, DM name resolution, README) is CLI-specific and has no Web UI impact.
+
+---
+
 ## Pre-publish Security Checklist
 
 Before making the repository public or pushing for the first time:
