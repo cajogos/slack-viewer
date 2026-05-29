@@ -26,5 +26,6 @@ export interface Reaction {
 export interface FileAttachment {
   name: string
   url: string
+  urlPrivate?: string
   mimetype?: string
 }

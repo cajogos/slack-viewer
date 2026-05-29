@@ -47,10 +47,17 @@ describe('toHtml', () => {
     expect(html).toContain(':thumbsup: 3')
   })
 
-  it('renders file attachments as links', () => {
+  it('renders non-image file attachments as links', () => {
     const html = toHtml(sampleExportDoc)
     expect(html).toContain('report.pdf')
     expect(html).toContain('href="https://files.slack.com/report.pdf"')
+  })
+
+  it('renders image attachments as <img> tags', () => {
+    const html = toHtml(sampleExportDoc)
+    expect(html).toContain('<img src="images/screenshot.png"')
+    expect(html).toContain('alt="screenshot.png"')
+    expect(html).not.toContain('href="images/screenshot.png"')
   })
 
   it('has a dark background color in the <style> block', () => {

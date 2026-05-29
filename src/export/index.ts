@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { resolve, basename, join } from 'node:path'
 import chalk from 'chalk'
 import type { ExportDoc, ExportMessage } from './types.js'
 import { toJson } from './json.js'
@@ -80,6 +80,58 @@ export function buildThreadExportDoc(workspace: string, channelId: string, messa
   }
 }
 
+async function downloadImages(
+  messages: Message[],
+  outputPath: string,
+  token: string
+): Promise<Message[]> {
+  const imageFiles = messages.flatMap(m =>
+    (m.files ?? []).filter(f => f.urlPrivate && f.mimetype?.startsWith('image/'))
+  )
+  if (imageFiles.length === 0) return messages
+
+  const base = outputPath.replace(/\.[^.]+$/, '')
+  const filesDir = `${base}_files`
+  const dirName = basename(filesDir)
+  mkdirSync(filesDir, { recursive: true })
+
+  const urlToRelative = new Map<string, string>()
+  for (const file of imageFiles) {
+    const privateUrl = file.urlPrivate!
+    if (urlToRelative.has(privateUrl)) continue
+
+    try {
+      const res = await fetch(privateUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) {
+        console.error(`Warning: failed to download ${file.name} (HTTP ${res.status})`)
+        continue
+      }
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_') || `image_${urlToRelative.size}.bin`
+      const localPath = join(filesDir, safeName)
+      writeFileSync(localPath, Buffer.from(await res.arrayBuffer()))
+      urlToRelative.set(privateUrl, `${dirName}/${safeName}`)
+    } catch (err) {
+      console.error(`Warning: failed to download ${file.name}: ${(err as Error).message}`)
+    }
+  }
+
+  if (urlToRelative.size === 0) return messages
+
+  return messages.map(m => {
+    if (!m.files) return m
+    return {
+      ...m,
+      files: m.files.map(f =>
+        f.urlPrivate && urlToRelative.has(f.urlPrivate)
+          ? { ...f, url: urlToRelative.get(f.urlPrivate)! }
+          : f
+      ),
+    }
+  })
+}
+
 export interface ExportCommandOpts {
   channel?: string
   format?: string
@@ -148,8 +200,13 @@ export async function runExportCommand(opts: ExportCommandOpts): Promise<void> {
 
   console.error(`Fetched ${allMessages.length} messages`)
 
-  const doc = buildChannelExportDoc(teamId, found, allMessages)
   const outPath = outputArg ?? defaultOutputPath(found.name.replace(/^#/, ''), format)
+
+  const exportMessages = format === 'html'
+    ? await downloadImages(allMessages, outPath, profile.token)
+    : allMessages
+
+  const doc = buildChannelExportDoc(teamId, found, exportMessages)
   writeFileSync(outPath, formatDoc(doc, format), 'utf8')
   console.log(chalk.green(`✓ Saved to ${outPath}`))
 }
@@ -186,7 +243,7 @@ export async function runThreadCommand(opts: ThreadCommandOpts): Promise<void> {
   const teamId = (auth.team as string | undefined) ?? profile.name
 
   console.error('Fetching thread…')
-  const messages = await fetchThread(client, teamId, parsed.channelId, parsed.threadTs)
+  let messages = await fetchThread(client, teamId, parsed.channelId, parsed.threadTs)
   console.error(`Fetched ${messages.length} messages`)
 
   if (messages.length === 0) {
@@ -194,8 +251,13 @@ export async function runThreadCommand(opts: ThreadCommandOpts): Promise<void> {
     process.exit(1)
   }
 
-  const doc = buildThreadExportDoc(teamId, parsed.channelId, messages)
   const outPath = outputArg ?? defaultOutputPath(parsed.channelId.toLowerCase(), format)
+
+  if (format === 'html') {
+    messages = await downloadImages(messages, outPath, profile.token)
+  }
+
+  const doc = buildThreadExportDoc(teamId, parsed.channelId, messages)
   writeFileSync(outPath, formatDoc(doc, format), 'utf8')
   console.log(chalk.green(`✓ Saved to ${outPath}`))
 }

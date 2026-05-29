@@ -57,6 +57,8 @@ time { font-size: 0.8rem; color: #666; }
 }
 .files { margin-top: 0.4rem; }
 .files a { color: #7eb8d4; font-size: 0.9rem; }
+.img-attachment { margin-top: 0.5rem; }
+.img-attachment img { max-width: 100%; max-height: 500px; border-radius: 4px; display: block; }
 .reply-count { margin-top: 0.4rem; color: #666; font-size: 0.85rem; }
 details.replies { margin-top: 0.5rem; }
 details.replies summary {
@@ -95,7 +97,11 @@ function renderMessage(msg: ExportMessage, isReply = false): string {
   if (msg.files && msg.files.length > 0) {
     html += `  <div class="files">\n`
     for (const f of msg.files) {
-      html += `    <div>📎 <a href="${esc(f.url)}">${esc(f.name)}</a></div>\n`
+      if (f.mimetype?.startsWith('image/')) {
+        html += `    <div class="img-attachment"><img src="${esc(f.url)}" alt="${esc(f.name)}" loading="lazy"></div>\n`
+      } else {
+        html += `    <div>📎 <a href="${esc(f.url)}">${esc(f.name)}</a></div>\n`
+      }
     }
     html += `  </div>\n`
   }

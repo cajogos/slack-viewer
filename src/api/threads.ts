@@ -51,6 +51,7 @@ export async function fetchThread(
       const files: FileAttachment[] = ((msg.files as Array<Record<string, unknown>> | undefined) ?? []).map(f => ({
         name: (f['name'] as string | undefined) ?? '',
         url: (f['permalink'] as string | undefined) ?? (f['url_private'] as string | undefined) ?? '',
+        urlPrivate: f['url_private'] as string | undefined,
         mimetype: f['mimetype'] as string | undefined,
       }))
 

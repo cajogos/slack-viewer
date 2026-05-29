@@ -19,6 +19,7 @@ export const sampleExportDoc: ExportDoc = {
       ],
       files: [
         { name: 'report.pdf', url: 'https://files.slack.com/report.pdf', mimetype: 'application/pdf' },
+        { name: 'screenshot.png', url: 'images/screenshot.png', mimetype: 'image/png' },
       ],
       replyCount: 2,
     },
