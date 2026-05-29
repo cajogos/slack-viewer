@@ -18,7 +18,7 @@ A read-only CLI explorer and export tool for Slack. The user navigates workspace
 | 1 | Scaffolding | complete |
 | 2 | Config & API Client | complete |
 | 3 | Channel & Message Fetching | complete |
-| 4 | CLI Navigation | pending |
+| 4 | CLI Navigation | complete |
 | 5 | Export Formatters | pending |
 | 6 | Polish & Edge Cases | pending |
 
