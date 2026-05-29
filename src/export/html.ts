@@ -1,12 +1,13 @@
-import type { ExportDoc, ExportMessage } from './types.js'
-import { mrkdwnToText } from '../utils/mrkdwn.js'
+import type { ExportDoc, ExportMessage } from './types.js';
+import { mrkdwnToText } from '../utils/mrkdwn.js';
 
-function esc(s: string): string {
+function esc(s: string): string 
+{
   return s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
+    .replace(/"/g, '&quot;');
 }
 
 const CSS = `
@@ -75,59 +76,73 @@ details.replies summary {
   border-left: 2px solid #2a2a3e;
   margin-bottom: 0.5rem;
 }
-`.trim()
+`.trim();
 
-function renderMessage(msg: ExportMessage, isReply = false): string {
-  const textHtml = mrkdwnToText(msg.text, { format: 'html' })
+function renderMessage(msg: ExportMessage, isReply = false): string 
+{
+  const textHtml = mrkdwnToText(msg.text, { format: 'html' });
 
-  const cls = isReply ? 'message reply' : 'message'
-  let html = `<article class="${cls}">\n`
-  html += `  <div class="meta"><span class="user">${esc(msg.user)}</span><time>${esc(msg.datetime)}</time></div>\n`
+  const cls = isReply ? 'message reply' : 'message';
+  let html = `<article class="${cls}">\n`;
+  html += `  <div class="meta"><span class="user">${esc(msg.user)}</span><time>${esc(msg.datetime)}</time></div>\n`;
 
-  if (textHtml.trim()) {
-    html += `  <div class="text">${textHtml}</div>\n`
+  if (textHtml.trim()) 
+  {
+    html += `  <div class="text">${textHtml}</div>\n`;
   }
 
-  if (msg.reactions && msg.reactions.length > 0) {
-    html += `  <div class="reactions">\n`
-    for (const r of msg.reactions) {
-      html += `    <span class="reaction">:${esc(r.name)}: ${r.count}</span>\n`
+  if (msg.reactions && msg.reactions.length > 0) 
+  {
+    html += '  <div class="reactions">\n';
+    for (const r of msg.reactions) 
+    {
+      html += `    <span class="reaction">:${esc(r.name)}: ${r.count}</span>\n`;
     }
-    html += `  </div>\n`
+    html += '  </div>\n';
   }
 
-  if (msg.files && msg.files.length > 0) {
-    html += `  <div class="files">\n`
-    for (const f of msg.files) {
-      if (f.mimetype?.startsWith('image/') && !f.url.startsWith('http')) {
-        html += `    <div class="img-attachment"><img src="${esc(f.url)}" alt="${esc(f.name)}" loading="lazy"></div>\n`
-      } else {
-        html += `    <div>📎 <a href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">${esc(f.name)}</a></div>\n`
+  if (msg.files && msg.files.length > 0) 
+  {
+    html += '  <div class="files">\n';
+    for (const f of msg.files) 
+    {
+      if (f.mimetype?.startsWith('image/') && !f.url.startsWith('http')) 
+      {
+        html += `    <div class="img-attachment"><img src="${esc(f.url)}" alt="${esc(f.name)}" loading="lazy"></div>\n`;
+      }
+      else 
+      {
+        html += `    <div>📎 <a href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">${esc(f.name)}</a></div>\n`;
       }
     }
-    html += `  </div>\n`
+    html += '  </div>\n';
   }
 
-  if (msg.replies && msg.replies.length > 0) {
-    const replyWord = msg.replies.length === 1 ? 'reply' : 'replies'
-    html += `  <details class="replies" open>\n`
-    html += `    <summary>${msg.replies.length} ${replyWord}</summary>\n`
-    for (const reply of msg.replies) {
-      html += renderMessage(reply, true)
+  if (msg.replies && msg.replies.length > 0) 
+  {
+    const replyWord = msg.replies.length === 1 ? 'reply' : 'replies';
+    html += '  <details class="replies" open>\n';
+    html += `    <summary>${msg.replies.length} ${replyWord}</summary>\n`;
+    for (const reply of msg.replies) 
+    {
+      html += renderMessage(reply, true);
     }
-    html += `  </details>\n`
-  } else if (msg.replyCount && msg.replyCount > 0) {
-    const word = msg.replyCount === 1 ? 'reply' : 'replies'
-    html += `  <div class="reply-count">↳ ${msg.replyCount} ${word}</div>\n`
+    html += '  </details>\n';
+  }
+  else if (msg.replyCount && msg.replyCount > 0) 
+  {
+    const word = msg.replyCount === 1 ? 'reply' : 'replies';
+    html += `  <div class="reply-count">↳ ${msg.replyCount} ${word}</div>\n`;
   }
 
-  html += `</article>`
-  return html
+  html += '</article>';
+  return html;
 }
 
-export function toHtml(doc: ExportDoc): string {
-  const title = `#${esc(doc.channel)} — ${esc(doc.workspace)}`
-  const messagesHtml = doc.messages.map(m => renderMessage(m)).join('\n')
+export function toHtml(doc: ExportDoc): string 
+{
+  const title = `#${esc(doc.channel)} — ${esc(doc.workspace)}`;
+  const messagesHtml = doc.messages.map(m => renderMessage(m)).join('\n');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -148,5 +163,5 @@ ${CSS.split('\n').map(l => '    ' + l).join('\n')}
 ${messagesHtml.split('\n').map(l => '    ' + l).join('\n')}
   </main>
 </body>
-</html>`
+</html>`;
 }

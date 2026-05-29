@@ -36,4 +36,4 @@ export const fakeRawMessages = [
     text: 'First message',
     reactions: [{ name: 'thumbsup', count: 3, users: ['U002'] }],
   },
-]
+];

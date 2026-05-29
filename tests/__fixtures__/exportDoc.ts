@@ -1,4 +1,4 @@
-import type { ExportDoc } from '../../src/export/types.js'
+import type { ExportDoc } from '../../src/export/types.js';
 
 export const sampleExportDoc: ExportDoc = {
   workspace: 'Acme Corp',
@@ -31,7 +31,7 @@ export const sampleExportDoc: ExportDoc = {
       text: 'Thanks Alice!',
     },
   ],
-}
+};
 
 export const sampleThreadExportDoc: ExportDoc = {
   workspace: 'Acme Corp',
@@ -65,4 +65,4 @@ export const sampleThreadExportDoc: ExportDoc = {
       ],
     },
   ],
-}
+};

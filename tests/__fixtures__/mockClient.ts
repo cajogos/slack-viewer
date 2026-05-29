@@ -1,7 +1,8 @@
-import { vi } from 'vitest'
-import type { WebClient } from '@slack/web-api'
+import { vi } from 'vitest';
+import type { WebClient } from '@slack/web-api';
 
-export function createMockClient(overrides: Record<string, unknown> = {}): WebClient {
+export function createMockClient(overrides: Record<string, unknown> = {}): WebClient 
+{
   return {
     auth: {
       test: vi.fn().mockResolvedValue({
@@ -21,5 +22,5 @@ export function createMockClient(overrides: Record<string, unknown> = {}): WebCl
       members: vi.fn(),
     },
     ...overrides,
-  } as unknown as WebClient
+  } as unknown as WebClient;
 }

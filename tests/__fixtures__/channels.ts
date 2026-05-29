@@ -49,4 +49,4 @@ export const fakeRawChannels = [
     is_member: true,
     num_members: 3,
   },
-]
+];
