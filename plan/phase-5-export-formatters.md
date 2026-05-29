@@ -220,3 +220,40 @@ For each format, export a real channel and check:
 - **JSON**: valid JSON, all messages present, reactions/files included
 - **Markdown**: renders correctly in a Markdown viewer; replies indented
 - **HTML**: opens in browser without errors; no broken styles; `<details>` expand correctly; file is standalone (no network requests)
+
+## Testing
+
+Export formatters are pure `ExportDoc → string` functions — the most testable code in the project with zero mocking required.
+
+**New files:**
+```
+tests/__fixtures__/exportDoc.ts    pre-built ExportDoc with messages, reactions, files, replies
+tests/export/json.test.ts
+tests/export/markdown.test.ts
+tests/export/html.test.ts
+```
+
+**`tests/__fixtures__/exportDoc.ts`** — a realistic `ExportDoc` fixture covering all fields: messages with reactions, file attachments, and thread replies.
+
+**`tests/export/json.test.ts`** cases:
+- `JSON.parse(toJson(doc))` does not throw (valid JSON)
+- All messages present with correct fields
+- Reactions serialised as `{ name, count }`
+- File attachments serialised with `name`, `url`, `mimetype`
+
+**`tests/export/markdown.test.ts`** cases:
+- Output starts with `# #channel-name —` header
+- Each message contains the username and formatted datetime
+- Reactions rendered as `:emoji: ×N`
+- File attachments present with name and URL
+- Thread replies rendered as `> **User** · datetime *(reply)*` blockquotes
+- Top-level messages separated by `---`
+
+**`tests/export/html.test.ts`** cases:
+- Output contains `<!DOCTYPE html>` and `</html>`
+- No external URLs: no `http://` or `https://` in `<link>`, `<script>`, or `@import` (fully offline)
+- User-supplied text is HTML-escaped: a message containing `<script>alert(1)</script>` appears as `&lt;script&gt;` in output
+- Thread replies are wrapped in `<details>` elements
+- Dark theme: spot-check that a key CSS property (e.g. `background`) appears in the `<style>` block
+
+**Run:** `pnpm test` — all cases pass without any network calls or file I/O.

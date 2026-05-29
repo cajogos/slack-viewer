@@ -217,3 +217,22 @@ pnpm dev    # prints clear error and exits 1
 # Export → pagination progress visible
 # Output file opens cleanly in browser/editor
 ```
+
+## Testing
+
+Tests cover the `parseArgs` flag handling in `src/index.ts`. The interactive and network paths are tested manually (see Verification above).
+
+**New file:**
+```
+tests/index.test.ts
+```
+
+**`tests/index.test.ts`** cases — spawn the compiled binary as a child process and assert on exit code + stdout:
+- `node dist/index.js --help` exits 0 and stdout includes `"Usage:"`
+- `node dist/index.js --version` exits 0 and stdout matches the version in `package.json`
+- `node dist/index.js export` (missing `--channel`) exits 1 and stderr includes a usage hint
+- `node dist/index.js thread not-a-url --format json` exits 1 and stderr includes the expected URL format
+
+These tests run against the compiled `dist/` output, so `pnpm build` must be run before `pnpm test` (or add a `pretest` script: `"pretest": "tsc"`).
+
+**Run:** `pnpm build && pnpm test` — full suite from all phases passes, covering all layers without any live Slack API calls.

@@ -199,3 +199,45 @@ A temporary test in `src/index.ts` should:
 2. Call `listChannels` and print the first 5
 3. Call `fetchHistory` on a known channel ID and print the first 3 messages
 4. Call `parseThreadUrl` with a real thread URL and print the parsed result
+
+## Testing
+
+`parseThreadUrl` and `mrkdwnToText` are pure functions — no mocks needed. API functions use `createMockClient()` from `tests/__fixtures__/mockClient.ts`.
+
+**New files:**
+```
+tests/__fixtures__/channels.ts     fake Channel[] fixture
+tests/__fixtures__/messages.ts     fake Message[] (regular, bot, thread replies, system subtypes)
+tests/api/channels.test.ts
+tests/api/messages.test.ts
+tests/api/threads.test.ts
+tests/utils/mrkdwn.test.ts
+```
+
+**`tests/api/channels.test.ts`** cases:
+- Returns all accessible channels (excludes archived)
+- Merges paginated results across two pages into a single list
+- Marks inaccessible private channels as `[no access]` rather than hiding them
+
+**`tests/api/messages.test.ts`** cases:
+- Returns messages in chronological order (oldest first — API returns newest first; must be reversed)
+- Resolves user IDs to display names via `getDisplayName`
+- Bot messages (`subtype: 'bot_message'`) use `username` field directly, not `getDisplayName`
+- System subtypes (`channel_join`, `channel_leave`, `channel_topic`) are filtered out
+- Handles paginated history — returns `hasMore` and `nextCursor`
+
+**`tests/api/threads.test.ts`** — `parseThreadUrl` only (pure function):
+- Parses `https://workspace.slack.com/archives/C123/p1234567890123456` correctly
+- Prefers `thread_ts` query param when present over the p-number
+- `p1234567890123456` → `"1234567890.123456"` (dot inserted 10 digits from left)
+- Returns `null` for unrecognised URL formats
+
+**`tests/utils/mrkdwn.test.ts`** — pure function, all three output modes:
+- `<@U123>` → `@U123` (sync) / resolved name (async)
+- `<#C123|general>` → `#general`
+- `<https://example.com|click here>` → format-appropriate output for plain, markdown, html
+- `*bold*`, `_italic_`, `` `code` ``, ` ```block``` `
+- HTML entities: `&amp;`, `&lt;`, `&gt;` escape correctly in html mode
+- Unrecognised tokens passed through unchanged
+
+**Run:** `pnpm test` — all cases pass without any network calls.

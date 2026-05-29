@@ -104,3 +104,48 @@ pnpm dev
 ```
 
 Expected: startup calls `auth.test`, prints `Connected to: <workspace name>`. If `workspaces.json` is missing, prints a clear error and exits.
+
+## Testing
+
+No Slack API calls in tests. `node:fs/promises` is mocked for `workspaces.ts`; `@slack/web-api` is mocked for `client.ts` and `users.ts`; timers are faked for the 429 retry sleep.
+
+**New files:**
+```
+tests/__fixtures__/mockClient.ts   shared createMockClient() helper
+tests/config/workspaces.test.ts
+tests/api/client.test.ts
+tests/api/users.test.ts
+```
+
+**`tests/__fixtures__/mockClient.ts`** — returns a mock `WebClient` with configurable per-method responses:
+```ts
+import { vi } from 'vitest'
+export function createMockClient(overrides = {}) {
+  return {
+    auth: { test: vi.fn().mockResolvedValue({ ok: true, user_id: 'U123', team_id: 'T456' }) },
+    users: { info: vi.fn() },
+    conversations: { list: vi.fn(), history: vi.fn(), replies: vi.fn() },
+    ...overrides,
+  }
+}
+```
+
+**`tests/config/workspaces.test.ts`** cases:
+- Loads a valid `workspaces.json` and returns `WorkspaceProfile[]`
+- Throws with a clear message when the file is missing
+- Throws when the JSON is malformed
+- Throws when a token does not start with `xoxp-`
+
+**`tests/api/client.test.ts`** cases:
+- `withRateLimit` resolves normally on success
+- Retries once after a 429 error, sleeping `(retry_after * 1000) + 500ms` (use `vi.useFakeTimers()` + `vi.advanceTimersByTimeAsync()`)
+- Throws after exhausting retries
+
+**`tests/api/users.test.ts`** cases:
+- Resolves `profile.display_name` when present
+- Falls back to `real_name` when `display_name` is empty
+- Falls back to raw `userId` when both are absent
+- Caches: second call with same `(teamId, userId)` does not call `users.info` again
+- Cache is scoped per `teamId`: same `userId` in a different team triggers a new lookup
+
+**Run:** `pnpm test` — all cases pass without any network calls.

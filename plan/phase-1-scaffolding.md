@@ -139,3 +139,35 @@ git check-ignore -v workspaces.json   # must print the matching .gitignore rule
 git check-ignore -v .env              # must print the matching .gitignore rule
 rm workspaces.json .env               # clean up test files
 ```
+
+## Testing
+
+**Framework setup** — the test infrastructure is established in this phase so it's available from Phase 2 onward.
+
+**Additional devDependencies:**
+```json
+"vitest": "^3",
+"@vitest/coverage-v8": "^3"
+```
+
+**Additional scripts in `package.json`:**
+```json
+"test":          "vitest run",
+"test:watch":    "vitest",
+"test:coverage": "vitest run --coverage"
+```
+
+**New file — `vitest.config.ts`:**
+```ts
+import { defineConfig } from 'vitest/config'
+export default defineConfig({
+  test: {
+    environment: 'node',
+    include: ['tests/**/*.test.ts'],
+  },
+})
+```
+
+**Update `tsconfig.json`:** add `"tests"` to the `include` array so test files are type-checked by `pnpm typecheck`.
+
+**Verification:** `pnpm test` exits 0 with "no test files found" (passes vacuously). `pnpm typecheck` exits 0.

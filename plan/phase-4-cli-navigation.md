@@ -282,3 +282,31 @@ Full navigation flow manually tested:
 3. View messages → load more
 4. Paste a real thread URL → displays replies
 5. Export a channel → file exists with expected content
+
+## Testing
+
+`@inquirer/prompts` interactive menus require a real TTY and are not unit-testable. Tests cover the pure helper functions extracted into `src/cli/prompts.ts`.
+
+**New file:**
+```
+tests/cli/prompts.test.ts
+```
+
+**`tests/cli/prompts.test.ts`** cases:
+
+`formatRelativeTime(ts)`:
+- `< 1 minute ago` → `"just now"`
+- `30 minutes ago` → `"30m ago"`
+- `3 hours ago` → `"3h ago"`
+- `yesterday` boundary → `"yesterday"`
+- Within the past 7 days → day name (`"Mon"`, `"Tue"`, etc.)
+- Older than 7 days → absolute date string
+
+`userColor(userId)`:
+- Same `userId` always returns the same chalk color function
+- The hash is deterministic: specific known IDs map to specific palette indices
+- All 6 palette colors are reachable (test one per slot using crafted IDs)
+
+**Note:** The interactive menus (`selectWorkspace`, `selectChannel`, `selectAction`) are validated manually during development and indirectly via Phase 5 export formatter tests that exercise the full `ExportDoc` pipeline.
+
+**Run:** `pnpm test` — all cases pass.
