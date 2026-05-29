@@ -233,6 +233,16 @@ When generating or suggesting code that handles tokens:
 - Never pass tokens as CLI arguments (they appear in shell history and `ps` output)
 - `workspaces.json` is the only place tokens should ever exist on disk
 
+## Completion Checklist
+
+After finishing each phase or task, always do ALL of the following before stopping:
+1. Run `pnpm test` — all tests must pass
+2. Run `pnpm typecheck` — zero errors
+3. Update the Build Status table in this file (change `pending` → `complete`)
+4. Commit the changes
+
+**Never skip any step. Never forget to mark the phase complete in the Build Status table.**
+
 ## Development Notes
 
 - Phase plan files live in `plan/` — consult them before starting a new phase

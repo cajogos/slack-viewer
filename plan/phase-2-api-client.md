@@ -4,16 +4,16 @@ Build the foundation layer: load workspace profiles, create authenticated Slack 
 
 ## Goals
 
-- [ ] `loadWorkspaces()` reads and validates `workspaces.json`; exits with a clear message if missing or empty
-- [ ] Token format validated at load time — warns if any token does not start with `xoxp-`
-- [ ] `createClient()` returns a configured `WebClient` with retry support
-- [ ] `auth.test` is called on startup to confirm the token is valid; workspace `team_id` and name are extracted
-- [ ] 429 errors are caught and the process sleeps for `retry_after + 0.5s` before retrying (not just once — loops until success or max attempts)
-- [ ] `getDisplayName()` resolves a user ID to a display name
-- [ ] User display-name cache is scoped per workspace (`teamId`) — switching workspaces in the same session does not serve stale names from a previous workspace
-- [ ] Invalid or expired tokens produce a clear error message and exit 1
-- [ ] `README.md` — "Get a Slack user token" and "Create workspaces.json" sections verified against actual setup experience; scope list confirmed complete
-- [ ] `CLAUDE.md` — Phase 2 marked `complete`; update the Rate Limiting and User Display Names sections if the implementation differed from the plan; confirm `withRateLimit` usage note is accurate
+- [x] `loadWorkspaces()` reads and validates `workspaces.json`; exits with a clear message if missing or empty
+- [x] Token format validated at load time — warns if any token does not start with `xoxp-`
+- [x] `createClient()` returns a configured `WebClient` with retry support
+- [x] `auth.test` is called on startup to confirm the token is valid; workspace `team_id` and name are extracted
+- [x] 429 errors are caught and the process sleeps for `retry_after + 0.5s` before retrying (not just once — loops until success or max attempts)
+- [x] `getDisplayName()` resolves a user ID to a display name
+- [x] User display-name cache is scoped per workspace (`teamId`) — switching workspaces in the same session does not serve stale names from a previous workspace
+- [x] Invalid or expired tokens produce a clear error message and exit 1
+- [x] `README.md` — "Get a Slack user token" and "Create workspaces.json" sections verified against actual setup experience; scope list confirmed complete
+- [x] `CLAUDE.md` — Phase 2 marked `complete`; update the Rate Limiting and User Display Names sections if the implementation differed from the plan; confirm `withRateLimit` usage note is accurate
 
 ## Files to Create
 
