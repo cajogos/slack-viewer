@@ -5,175 +5,175 @@ type Format = 'plain' | 'markdown' | 'html'
 
 export function mrkdwnToText(text: string, opts?: { format?: Format }): string 
 {
-  const fmt = opts?.format ?? 'plain';
-  let result = text;
+    const fmt = opts?.format ?? 'plain';
+    let result = text;
 
-  // Code blocks first (prevent inner parsing)
-  result = result.replace(/```([\s\S]*?)```/g, (_, code: string) => 
-  {
-    if (fmt === 'html') 
+    // Code blocks first (prevent inner parsing)
+    result = result.replace(/```([\s\S]*?)```/g, (_, code: string) => 
     {
-      return `<pre><code>${code}</code></pre>`;
-    }
-    if (fmt === 'markdown') 
-    {
-      return `\`\`\`\n${code}\n\`\`\``;
-    }
-    return `\`\`\`${code}\`\`\``;
-  });
+        if (fmt === 'html') 
+        {
+            return `<pre><code>${code}</code></pre>`;
+        }
+        if (fmt === 'markdown') 
+        {
+            return `\`\`\`\n${code}\n\`\`\``;
+        }
+        return `\`\`\`${code}\`\`\``;
+    });
 
-  // Inline code
-  result = result.replace(/`([^`]+)`/g, (_, code: string) => 
-  {
-    if (fmt === 'html') 
+    // Inline code
+    result = result.replace(/`([^`]+)`/g, (_, code: string) => 
     {
-      return `<code>${code}</code>`;
-    }
-    return `\`${code}\``;
-  });
+        if (fmt === 'html') 
+        {
+            return `<code>${code}</code>`;
+        }
+        return `\`${code}\``;
+    });
 
-  // Links with display text: <url|text>
-  result = result.replace(/<(https?:\/\/[^|>]+)\|([^>]+)>/g, (_, url: string, linkText: string) => 
-  {
-    if (fmt === 'html') 
+    // Links with display text: <url|text>
+    result = result.replace(/<(https?:\/\/[^|>]+)\|([^>]+)>/g, (_, url: string, linkText: string) => 
     {
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
-    }
-    if (fmt === 'markdown') 
-    {
-      return `[${linkText}](${url})`;
-    }
-    return `${linkText} (${url})`;
-  });
+        if (fmt === 'html') 
+        {
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+        }
+        if (fmt === 'markdown') 
+        {
+            return `[${linkText}](${url})`;
+        }
+        return `${linkText} (${url})`;
+    });
 
-  // Bare links: <url>
-  result = result.replace(/<(https?:\/\/[^>]+)>/g, (_, url: string) => 
-  {
-    if (fmt === 'html') 
+    // Bare links: <url>
+    result = result.replace(/<(https?:\/\/[^>]+)>/g, (_, url: string) => 
     {
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-    }
-    return url;
-  });
+        if (fmt === 'html') 
+        {
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        }
+        return url;
+    });
 
-  // Channel mentions: <#C123|name>
-  result = result.replace(/<#[A-Z0-9]+\|([^>]+)>/g, (_, name: string) => 
-  {
-    if (fmt === 'html') 
+    // Channel mentions: <#C123|name>
+    result = result.replace(/<#[A-Z0-9]+\|([^>]+)>/g, (_, name: string) => 
     {
-      return `<span class="channel">#${name}</span>`;
-    }
-    return `#${name}`;
-  });
+        if (fmt === 'html') 
+        {
+            return `<span class="channel">#${name}</span>`;
+        }
+        return `#${name}`;
+    });
 
-  // User mentions with resolved name: <@U123|Alice>
-  result = result.replace(/<@([A-Z0-9]+)\|([^>]+)>/g, (_, userId: string, name: string) => 
-  {
-    if (fmt === 'html') 
+    // User mentions with resolved name: <@U123|Alice>
+    result = result.replace(/<@([A-Z0-9]+)\|([^>]+)>/g, (_, userId: string, name: string) => 
     {
-      const safe = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/_/g, '&#95;').replace(/\*/g, '&#42;');
-      return `<a class="mention" href="https://slack.com/team/${userId}" target="_blank" rel="noopener noreferrer">@${safe}</a>`;
-    }
-    return `@${name}`;
-  });
+        if (fmt === 'html') 
+        {
+            const safe = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/_/g, '&#95;').replace(/\*/g, '&#42;');
+            return `<a class="mention" href="https://slack.com/team/${userId}" target="_blank" rel="noopener noreferrer">@${safe}</a>`;
+        }
+        return `@${name}`;
+    });
 
-  // User mentions without name: <@U123> (sync — use raw ID as fallback)
-  result = result.replace(/<@([A-Z0-9]+)>/g, (_, userId: string) => 
-  {
-    if (fmt === 'html') 
+    // User mentions without name: <@U123> (sync — use raw ID as fallback)
+    result = result.replace(/<@([A-Z0-9]+)>/g, (_, userId: string) => 
     {
-      return `<span class="mention">@${userId}</span>`;
-    }
-    return `@${userId}`;
-  });
+        if (fmt === 'html') 
+        {
+            return `<span class="mention">@${userId}</span>`;
+        }
+        return `@${userId}`;
+    });
 
-  // Bold: *text*
-  result = result.replace(/\*([^*\n]+)\*/g, (_, bold: string) => 
-  {
-    if (fmt === 'html') 
+    // Bold: *text*
+    result = result.replace(/\*([^*\n]+)\*/g, (_, bold: string) => 
     {
-      return `<strong>${bold}</strong>`;
-    }
-    if (fmt === 'markdown') 
-    {
-      return `**${bold}**`;
-    }
-    return bold;
-  });
+        if (fmt === 'html') 
+        {
+            return `<strong>${bold}</strong>`;
+        }
+        if (fmt === 'markdown') 
+        {
+            return `**${bold}**`;
+        }
+        return bold;
+    });
 
-  // Italic: _text_
-  result = result.replace(/_([^_\n]+)_/g, (_, italic: string) => 
-  {
-    if (fmt === 'html') 
+    // Italic: _text_
+    result = result.replace(/_([^_\n]+)_/g, (_, italic: string) => 
     {
-      return `<em>${italic}</em>`;
-    }
-    if (fmt === 'markdown') 
+        if (fmt === 'html') 
+        {
+            return `<em>${italic}</em>`;
+        }
+        if (fmt === 'markdown') 
+        {
+            return `_${italic}_`;
+        }
+        return italic;
+    });
+
+    // HTML entities — decode for plain/markdown; leave as-is for html (already valid)
+    if (fmt !== 'html') 
     {
-      return `_${italic}_`;
+        result = result.replace(/&amp;/g, '&');
+        result = result.replace(/&lt;/g, '<');
+        result = result.replace(/&gt;/g, '>');
     }
-    return italic;
-  });
 
-  // HTML entities — decode for plain/markdown; leave as-is for html (already valid)
-  if (fmt !== 'html') 
-  {
-    result = result.replace(/&amp;/g, '&');
-    result = result.replace(/&lt;/g, '<');
-    result = result.replace(/&gt;/g, '>');
-  }
-
-  return result;
+    return result;
 }
 
 export async function mrkdwnToTextAsync(
-  text: string,
-  client: WebClient,
-  teamId: string,
-  format: Format = 'plain',
+    text: string,
+    client: WebClient,
+    teamId: string,
+    format: Format = 'plain',
 ): Promise<string> 
 {
-  const ids = [...new Set([...text.matchAll(/<@([A-Z0-9]+)>/g)].map(m => m[1]))];
+    const ids = [...new Set([...text.matchAll(/<@([A-Z0-9]+)>/g)].map(m => m[1]))];
 
-  const nameMap = new Map(
-    await Promise.all(ids.map(async id => [id, await getDisplayName(client, teamId, id)] as const)),
-  );
+    const nameMap = new Map(
+        await Promise.all(ids.map(async id => [id, await getDisplayName(client, teamId, id)] as const)),
+    );
 
-  const resolved = text.replace(/<@([A-Z0-9]+)>/g, (_, id: string) => 
-  {
-    const name = nameMap.get(id) ?? id;
-    if (format === 'html') 
+    const resolved = text.replace(/<@([A-Z0-9]+)>/g, (_, id: string) => 
     {
-      const safe = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/_/g, '&#95;').replace(/\*/g, '&#42;');
-      return `<a class="mention" href="https://slack.com/team/${id}" target="_blank" rel="noopener noreferrer">@${safe}</a>`;
-    }
-    return `@${name}`;
-  });
+        const name = nameMap.get(id) ?? id;
+        if (format === 'html') 
+        {
+            const safe = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/_/g, '&#95;').replace(/\*/g, '&#42;');
+            return `<a class="mention" href="https://slack.com/team/${id}" target="_blank" rel="noopener noreferrer">@${safe}</a>`;
+        }
+        return `@${name}`;
+    });
 
-  return mrkdwnToText(resolved, { format });
+    return mrkdwnToText(resolved, { format });
 }
 
 // Replaces <@U123> tokens with <@U123|displayname> in raw mrkdwn,
 // so the sync mrkdwnToText can render names without an API call.
 export async function resolveMentionIds(
-  text: string,
-  client: WebClient,
-  teamId: string,
+    text: string,
+    client: WebClient,
+    teamId: string,
 ): Promise<string> 
 {
-  const ids = [...new Set([...text.matchAll(/<@([A-Z0-9]+)>/g)].map(m => m[1]))];
-  if (ids.length === 0) 
-  {
-    return text;
-  }
+    const ids = [...new Set([...text.matchAll(/<@([A-Z0-9]+)>/g)].map(m => m[1]))];
+    if (ids.length === 0) 
+    {
+        return text;
+    }
 
-  const nameMap = new Map(
-    await Promise.all(ids.map(async id => [id, await getDisplayName(client, teamId, id)] as const)),
-  );
+    const nameMap = new Map(
+        await Promise.all(ids.map(async id => [id, await getDisplayName(client, teamId, id)] as const)),
+    );
 
-  return text.replace(/<@([A-Z0-9]+)>/g, (_, id: string) => 
-  {
-    const name = nameMap.get(id) ?? id;
-    return `<@${id}|${name}>`;
-  });
+    return text.replace(/<@([A-Z0-9]+)>/g, (_, id: string) => 
+    {
+        const name = nameMap.get(id) ?? id;
+        return `<@${id}|${name}>`;
+    });
 }

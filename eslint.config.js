@@ -10,7 +10,7 @@ export default tseslint.config(
       semi: ['error', 'always'],
       quotes: ['error', 'single', { avoidEscape: true }],
       'comma-dangle': ['error', 'always-multiline'],
-      indent: ['error', 2, { SwitchCase: 1 }],
+      indent: ['error', 4, { SwitchCase: 1 }],
     },
   },
 );
