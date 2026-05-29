@@ -12,7 +12,7 @@ describe('fetchHistory', () => {
     const client = createMockClient()
     vi.mocked(client.conversations.history).mockResolvedValue({
       ok: true,
-      messages: [fakeRawMessages[0], fakeRawMessages[3]], // newest-first (ts desc)
+      messages: [fakeRawMessages[0], fakeRawMessages[4]], // newest-first (ts desc)
       has_more: false,
       response_metadata: { next_cursor: '' },
     } as never)
@@ -31,7 +31,7 @@ describe('fetchHistory', () => {
     const client = createMockClient()
     vi.mocked(client.conversations.history).mockResolvedValue({
       ok: true,
-      messages: [fakeRawMessages[3]], // user U001
+      messages: [fakeRawMessages[4]], // user U001
       has_more: false,
       response_metadata: { next_cursor: '' },
     } as never)
@@ -66,7 +66,7 @@ describe('fetchHistory', () => {
     const client = createMockClient()
     vi.mocked(client.conversations.history).mockResolvedValue({
       ok: true,
-      messages: [fakeRawMessages[3], fakeRawMessages[2], fakeRawMessages[1]], // includes channel_join
+      messages: [fakeRawMessages[4], fakeRawMessages[3], fakeRawMessages[1]], // includes channel_join
       has_more: false,
       response_metadata: { next_cursor: '' },
     } as never)
@@ -82,11 +82,26 @@ describe('fetchHistory', () => {
     expect(messages.find(m => m.text === 'U001 has joined the channel')).toBeUndefined()
   })
 
+  it('filters out bot messages with empty text', async () => {
+    const client = createMockClient()
+    vi.mocked(client.conversations.history).mockResolvedValue({
+      ok: true,
+      messages: [fakeRawMessages[1], fakeRawMessages[2]], // bot with text, bot with empty text
+      has_more: false,
+      response_metadata: { next_cursor: '' },
+    } as never)
+
+    const { messages } = await fetchHistory(client as never, 'T001', 'C001')
+
+    expect(messages).toHaveLength(1)
+    expect(messages[0].user).toBe('MyBot')
+  })
+
   it('returns hasMore and nextCursor when more pages exist', async () => {
     const client = createMockClient()
     vi.mocked(client.conversations.history).mockResolvedValue({
       ok: true,
-      messages: [fakeRawMessages[3]],
+      messages: [fakeRawMessages[0]],
       has_more: true,
       response_metadata: { next_cursor: 'cursor-abc' },
     } as never)

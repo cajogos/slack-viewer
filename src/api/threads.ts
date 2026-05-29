@@ -27,6 +27,7 @@ export async function fetchThread(
     for (const rawMsg of response.messages ?? []) {
       const msg = rawMsg as typeof rawMsg & { subtype?: string; username?: string }
       if (msg.subtype && SYSTEM_SUBTYPES.has(msg.subtype)) continue
+      if (msg.subtype === 'bot_message' && !msg.text) continue
 
       const ts = msg.ts ?? ''
       const datetime = ts ? new Date(parseFloat(ts) * 1000).toLocaleString() : ''

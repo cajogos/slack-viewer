@@ -32,6 +32,7 @@ export async function fetchHistory(
 
   for (const msg of raw) {
     if (msg.subtype && SYSTEM_SUBTYPES.has(msg.subtype)) continue
+    if (msg.subtype === 'bot_message' && !(msg.text as string | undefined)) continue
 
     const ts = msg.ts ?? ''
     const datetime = ts ? new Date(parseFloat(ts) * 1000).toLocaleString() : ''

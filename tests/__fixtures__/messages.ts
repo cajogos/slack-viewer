@@ -16,6 +16,13 @@ export const fakeRawMessages = [
     text: 'Bot says hello',
   },
   {
+    ts: '1700000002.500000',
+    type: 'message',
+    subtype: 'bot_message',
+    username: 'Slackbot',
+    text: '',
+  },
+  {
     ts: '1700000001.000000',
     type: 'message',
     subtype: 'channel_join',
