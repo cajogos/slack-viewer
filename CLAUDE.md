@@ -11,19 +11,6 @@ A read-only CLI explorer and export tool for Slack. The user navigates workspace
 - User tokens only (`xoxp-`). Bot tokens (`xoxb-`) are not supported.
 - No file downloads. File metadata (name, URL) is exported; the files themselves are not fetched.
 
-## Build Status
-
-| Phase | Name | Status |
-|---|---|---|
-| 1 | Scaffolding | complete |
-| 2 | Config & API Client | complete |
-| 3 | Channel & Message Fetching | complete |
-| 4 | CLI Navigation | complete |
-| 5 | Export Formatters | complete |
-| 6 | Polish & Edge Cases | complete |
-
-Update the status column to `complete` as each phase finishes.
-
 ## Tech Stack
 
 | Concern | Library | Notes |
@@ -262,13 +249,10 @@ When generating or suggesting code that handles tokens:
 
 ## Completion Checklist
 
-After finishing each phase or task, always do ALL of the following before stopping:
+After finishing any task, always do ALL of the following before stopping:
 1. Run `pnpm test` — all tests must pass
 2. Run `pnpm typecheck` — zero errors
-3. Update the Build Status table in this file (change `pending` → `complete`)
-4. Commit the changes
-
-**Never skip any step. Never forget to mark the phase complete in the Build Status table.**
+3. Commit the changes
 
 ## Development Notes
 
