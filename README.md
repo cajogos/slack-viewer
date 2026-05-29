@@ -114,9 +114,12 @@ Select workspace (if multiple configured)
   → Select channel
       → View recent messages    — arrow keys, Enter to load more
       → Paste thread URL        — paste a Slack URL to load that thread
-      → Export channel          — choose format and output path
+      → Export channel          — choose format, date range, and output path
+      → Jump to date            — jump forward to a specific YYYY-MM-DD date
       → Back
 ```
+
+After a successful HTML export you will be prompted whether to open the file in the browser immediately.
 
 Press **Ctrl+C** at any point to exit cleanly.
 
