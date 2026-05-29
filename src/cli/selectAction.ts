@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process'
-import { writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
 import chalk from 'chalk'
 import { select, input } from '@inquirer/prompts'
 import type { WebClient } from '@slack/web-api'
@@ -128,6 +129,7 @@ async function doChannelExport(
   spin.succeed(`Fetched ${allMessages.length} messages`)
 
   const doc = buildChannelExportDoc(workspace, channel, allMessages)
+  mkdirSync(dirname(outPath), { recursive: true })
   writeFileSync(outPath, formatDoc(doc, format), 'utf8')
   console.log(chalk.green(`✓ Saved to ${outPath}`))
   await maybeOpenInBrowser(format, outPath)
@@ -141,6 +143,7 @@ async function doThreadExport(
   outPath: string
 ): Promise<void> {
   const doc = buildThreadExportDoc(workspace, channelId, threadMessages)
+  mkdirSync(dirname(outPath), { recursive: true })
   writeFileSync(outPath, formatDoc(doc, format), 'utf8')
   console.log(chalk.green(`✓ Saved to ${outPath}`))
   await maybeOpenInBrowser(format, outPath)
