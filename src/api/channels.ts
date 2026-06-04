@@ -3,9 +3,19 @@ import { withRateLimit } from './client.js';
 import { getDisplayName, getUserInfo } from './users.js';
 import type { Channel } from '../types/slack.js';
 
-async function sleep(ms: number): Promise<void> 
+async function sleep(ms: number): Promise<void>
 {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// "mpdm-alice--bob.smith--charlie-1" → "Alice, Bob Smith, Charlie"
+function mpimDisplayName(slackName: string): string
+{
+    const inner = slackName.replace(/^mpdm-/, '').replace(/-\d+$/, '');
+    return inner
+        .split('--')
+        .map(part => part.replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))
+        .join(', ');
 }
 
 export async function listChannels(client: WebClient, teamId: string): Promise<Channel[]> 
@@ -52,9 +62,10 @@ export async function listChannels(client: WebClient, teamId: string): Promise<C
                   isMember: true,
               });
           }
-          else if (conv.is_mpim) 
+          else if (conv.is_mpim)
           {
-              raw.push({ id: conv.id, type: 'mpim', name: `#${conv.name ?? conv.id}`, memberCount: conv.num_members, isMember: true });
+              const rawName = conv.name ?? conv.id;
+              raw.push({ id: conv.id, type: 'mpim', name: mpimDisplayName(rawName), memberCount: conv.num_members, isMember: true });
           }
           else if (conv.is_private) 
           {

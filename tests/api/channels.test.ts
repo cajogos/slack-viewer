@@ -65,7 +65,22 @@ describe('listChannels', () =>
         expect(channels[0].name).toBe('#random');
     });
 
-    it('resolves IM partner display name as channel name', async () => 
+    it('generates a readable synthetic name for mpim group DMs', async () =>
+    {
+        const client = createMockClient();
+        vi.mocked(client.conversations.list).mockResolvedValue({
+            ok: true,
+            channels: [fakeRawChannels[4]], // mpdm-alice--bob.smith--charlie-1
+            response_metadata: { next_cursor: '' },
+        } as never);
+
+        const channels = await listChannels(client as never, 'T001');
+
+        expect(channels[0].type).toBe('mpim');
+        expect(channels[0].name).toBe('Alice, Bob');
+    });
+
+    it('resolves IM partner display name as channel name', async () =>
     {
         const client = createMockClient();
         vi.mocked(client.conversations.list).mockResolvedValue({
