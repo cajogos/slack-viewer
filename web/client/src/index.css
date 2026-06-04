@@ -66,10 +66,17 @@
         height: 100%;
     }
 
-    /* Wide-screen shell: pad, centre, and round the app at ≥ 1920 px */
+    /* Wide-screen shell: pad, centre, round and raise the app at ≥ 1920 px */
     @media (min-width: 1920px) {
         body {
-            background-color: hsl(222.2 84% 3%);
+            /* Dot-grid pattern over a very dark base */
+            background-color: hsl(222.2 84% 2.5%);
+            background-image: radial-gradient(
+                circle,
+                hsl(217.2 32.6% 22% / 0.6) 1px,
+                transparent 1px
+            );
+            background-size: 24px 24px;
             display: flex;
             align-items: stretch;
             padding: 1.25rem;
@@ -83,6 +90,10 @@
             border-radius: 0.75rem;
             overflow: hidden;
             height: auto;
+            box-shadow:
+                0 0 0 1px hsl(217.2 32.6% 22% / 0.8),
+                0 8px 16px hsl(222.2 84% 1% / 0.6),
+                0 24px 48px hsl(222.2 84% 1% / 0.4);
         }
     }
 

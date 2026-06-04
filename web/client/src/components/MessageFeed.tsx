@@ -52,7 +52,7 @@ export function MessageFeed({ workspace, channel, onThreadOpen, emojiMap, onExpo
     {
         const el = scrollRef.current;
         if (!el) return;
-        pinnedToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+        pinnedToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 150;
     }, []);
 
     return (
