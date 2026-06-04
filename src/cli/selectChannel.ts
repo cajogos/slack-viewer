@@ -40,17 +40,18 @@ function buildChoices(
         name: '↩  Switch workspace',
     };
 
-    if (q) 
+    if (q)
     {
+        const tokens = q.split(/\s+/).filter(Boolean);
         const matches = allChannels
-            .filter(ch => ch.name.toLowerCase().includes(q))
+            .filter(ch => tokens.every(t => ch.name.toLowerCase().includes(t)))
             .map(ch => ({
                 value: ch as Channel | 'switch-workspace',
                 name: channelLabel(ch),
                 ...((!ch.isMember && ch.type === 'public') ? { disabled: true } : {}),
             }));
 
-        if (profiles.length > 1 && '↩ switch workspace'.includes(q)) 
+        if (profiles.length > 1 && tokens.every(t => '↩ switch workspace'.includes(t)))
         {
             return [switchChoice, ...matches];
         }

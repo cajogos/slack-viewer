@@ -16,8 +16,9 @@ export function ChannelSidebar({ workspace, selectedChannelId, onSelect }: Chann
     const { channels, isLoading, error } = useChannels(workspace);
     const [search, setSearch] = useState('');
 
-    const filtered = search.trim()
-        ? channels.filter(ch => ch.name.toLowerCase().includes(search.toLowerCase()))
+    const tokens = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const filtered = tokens.length
+        ? channels.filter(ch => tokens.every(t => ch.name.toLowerCase().includes(t)))
         : channels;
 
     return (
