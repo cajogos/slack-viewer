@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient: Rich dark aubergine/purple (Slack brand style) -->
+    <linearGradient id="bubble-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3F0E40" />
+      <stop offset="100%" stop-color="#1A051D" />
+    </linearGradient>
+
+    <!-- Border Gradient: Vibrant blend of Slack's brand colors -->
+    <linearGradient id="border-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#36C5F0" />    <!-- Blue -->
+      <stop offset="33%" stop-color="#2EB67D" />   <!-- Green -->
+      <stop offset="66%" stop-color="#ECB22E" />   <!-- Yellow -->
+      <stop offset="100%" stop-color="#E01E5A" />  <!-- Red/Pink -->
+    </linearGradient>
+
+    <!-- Magnifier Lens Stroke Gradient: Sleek glass/silver effect -->
+    <linearGradient id="lens-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#A1A1AA" />
+    </linearGradient>
+  </defs>
+
+  <!-- Speech Bubble Shape with Border Gradient -->
+  <path d="M 140,100 h 232 a 60,60 0 0 1 60,60 v 172 a 60,60 0 0 1 -60,60 h -232 l -60,60 v -292 a 60,60 0 0 1 60,-60 z"
+        fill="url(#bubble-bg)" 
+        stroke="url(#border-grad)" 
+        stroke-width="12" 
+        stroke-linejoin="round" />
+
+  <!-- Glass reflection under the magnifier -->
+  <circle cx="256" cy="236" r="68" fill="#FFFFFF" fill-opacity="0.06" />
+
+  <!-- Stylized Slack Logo inside the lens -->
+  <g transform="translate(256, 236) scale(0.042) translate(-1223.8, -1226.25)">
+    <!-- Blue Path -->
+    <path fill="#36C5F0" d="m897.4 0c-135.3.1-244.8 109.9-244.7 245.2-.1 135.3 109.5 245.1 244.8 245.2h244.8v-245.1c.1-135.3-109.5-245.1-244.9-245.3.1 0 .1 0 0 0m0 654h-652.6c-135.3.1-244.9 109.9-244.8 245.2-.2 135.3 109.4 245.1 244.7 245.3h652.7c135.3-.1 244.9-109.9 244.8-245.2.1-135.4-109.5-245.2-244.8-245.3z"/>
+    <!-- Green Path -->
+    <path fill="#2EB67D" d="m2447.6 899.2c.1-135.3-109.5-245.1-244.8-245.2-135.3.1-244.9 109.9-244.8 245.2v245.3h244.8c135.3-.1 244.9-109.9 244.8-245.3zm-652.7 0v-654c.1-135.2-109.4-245-244.7-245.2-135.3.1-244.9 109.9-244.8 245.2v654c-.2 135.3 109.4 245.1 244.7 245.3 135.3-.1 244.9-109.9 244.8-245.3z"/>
+    <!-- Yellow Path -->
+    <path fill="#ECB22E" d="m1550.1 2452.5c135.3-.1 244.9-109.9 244.8-245.2.1-135.3-109.5-245.1-244.8-245.2h-244.8v245.2c-.1 135.2 109.5 245 244.8 245.2zm0-654.1h652.7c135.3-.1 244.9-109.9 244.8-245.2.2-135.3-109.4-245.1-244.7-245.3h-652.7c-135.3.1-244.9 109.9-244.8 245.2-.1 135.4 109.4 245.2 244.7 245.3z"/>
+    <!-- Red/Pink Path -->
+    <path fill="#E01E5A" d="m0 1553.2c-.1 135.3 109.5 245.1 244.8 245.2 135.3-.1 244.9-109.9 244.8-245.2v-245.2h-244.8c-135.3.1-244.9 109.9-244.8 245.2zm652.7 0v654c-.2 135.3 109.4 245.1 244.7 245.3 135.3-.1 244.9-109.9 244.8-245.2v-653.9c.2-135.3-109.4-245.1-244.7-245.3-135.4 0-244.9 109.8-244.8 245.1 0 0 0 .1 0 0"/>
+  </g>
+
+  <!-- Magnifier Lens Ring -->
+  <circle cx="256" cy="236" r="76" fill="none" stroke="url(#lens-grad)" stroke-width="16" />
+
+  <!-- Magnifier Handle -->
+  <line x1="310" y1="290" x2="365" y2="345" stroke="url(#lens-grad)" stroke-width="16" stroke-linecap="round" />
+
+  <!-- Magnifier Lens Reflection Shine Arc -->
+  <path d="M 210,190 A 64,64 0 0 1 302,190" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" opacity="0.35" />
+</svg>
