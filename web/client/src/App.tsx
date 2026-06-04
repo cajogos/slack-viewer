@@ -13,6 +13,7 @@ import { useEmoji } from '@/hooks/useEmoji';
 import { useChannels } from '@/hooks/useChannels';
 import { useRecentChannels } from '@/hooks/useRecentChannels';
 import { useActionLog } from '@/hooks/useActionLog';
+import { useTheme } from '@/hooks/useTheme';
 import type { Channel } from '@/types';
 
 interface OpenThread
@@ -46,6 +47,7 @@ export function App()
     const { channels, isLoading: channelsLoading, error: channelsError } = useChannels(selectedWorkspace);
     const { recentChannels, addRecentChannel } = useRecentChannels(selectedWorkspace);
     const { log, addAction } = useActionLog();
+    const { theme, setTheme } = useTheme();
 
     // Load workspaces once on mount
     useEffect(() =>
@@ -123,7 +125,7 @@ export function App()
 
     return (
         <TooltipProvider>
-            <div className="flex h-full bg-background text-foreground overflow-hidden">
+            <div data-theme={theme} className="flex h-full bg-background text-foreground overflow-hidden">
                 {/* Sidebar — full height */}
                 <div className="w-64 flex-shrink-0 flex flex-col bg-card">
                     <WorkspaceSwitcher
@@ -144,13 +146,13 @@ export function App()
                 <div className="flex-1 flex flex-col min-w-0">
                     <div className="flex flex-1 min-h-0">
                         <div className="flex-1 flex flex-col min-w-0">
-                            {recentChannels.length > 0 && selectedWorkspace && (
-                                <RecentChannelsBar
-                                    recentChannels={recentChannels}
-                                    activeChannelId={selectedChannel?.id ?? null}
-                                    onSelect={handleChannelSelect}
-                                />
-                            )}
+                            <RecentChannelsBar
+                                recentChannels={recentChannels}
+                                activeChannelId={selectedChannel?.id ?? null}
+                                onSelect={handleChannelSelect}
+                                theme={theme}
+                                setTheme={setTheme}
+                            />
                             {selectedWorkspace && selectedChannel
                                 ? (
                                     <MessageFeed

@@ -28,31 +28,132 @@
     --radius-xl: calc(var(--radius) + 4px);
 }
 
-@layer base {
-    :root {
-        --background: 222.2 84% 4.9%;
-        --foreground: 210 40% 98%;
-        --card: 222.2 84% 4.9%;
-        --card-foreground: 210 40% 98%;
-        --popover: 222.2 47.4% 8%;
-        --popover-foreground: 210 40% 98%;
-        --primary: 210 40% 98%;
-        --primary-foreground: 222.2 47.4% 11.2%;
-        --secondary: 217.2 32.6% 17.5%;
-        --secondary-foreground: 210 40% 98%;
-        --muted: 217.2 32.6% 17.5%;
-        --muted-foreground: 215 20.2% 65.1%;
-        --accent: 217.2 32.6% 17.5%;
-        --accent-foreground: 210 40% 98%;
-        --destructive: 0 62.8% 30.6%;
-        --border: 217.2 32.6% 17.5%;
-        --input: 217.2 32.6% 17.5%;
-        --ring: 212.7 26.8% 83.9%;
-        --radius: 0.5rem;
-    }
+/* ─── Themes ────────────────────────────────────────────────────────────────── */
+
+/* Fallback: same values as dark so the page renders correctly before React mounts */
+:root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 47.4% 8%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --radius: 0.5rem;
 }
 
+[data-theme="dark"] {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 47.4% 8%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --radius: 0.5rem;
+}
+
+[data-theme="light"] {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 98%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 30%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --border: 214.3 31.8% 85%;
+    --input: 214.3 31.8% 85%;
+    --ring: 222.2 84% 30%;
+    --radius: 0.5rem;
+}
+
+[data-theme="pastel"] {
+    --background: 260 30% 97%;
+    --foreground: 260 40% 18%;
+    --card: 260 20% 94%;
+    --card-foreground: 260 40% 18%;
+    --popover: 260 20% 94%;
+    --popover-foreground: 260 40% 18%;
+    --primary: 280 55% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 320 40% 90%;
+    --secondary-foreground: 260 40% 22%;
+    --muted: 300 20% 91%;
+    --muted-foreground: 260 20% 52%;
+    --accent: 200 55% 82%;
+    --accent-foreground: 200 55% 18%;
+    --destructive: 0 70% 52%;
+    --border: 280 25% 82%;
+    --input: 280 20% 89%;
+    --ring: 280 55% 50%;
+    --radius: 0.5rem;
+}
+
+[data-theme="terminal"] {
+    --background: 0 0% 0%;
+    --foreground: 120 100% 50%;
+    --card: 0 0% 4%;
+    --card-foreground: 120 100% 50%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 120 100% 50%;
+    --primary: 120 100% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 120 60% 9%;
+    --secondary-foreground: 120 100% 60%;
+    --muted: 120 40% 7%;
+    --muted-foreground: 120 70% 38%;
+    --accent: 120 60% 9%;
+    --accent-foreground: 120 100% 60%;
+    --destructive: 0 100% 50%;
+    --border: 120 60% 14%;
+    --input: 120 40% 7%;
+    --ring: 120 100% 50%;
+    --radius: 0rem;
+}
+
+/* Terminal: monospace font cascade */
+[data-theme="terminal"] {
+    font-family: 'Courier New', Courier, monospace;
+    letter-spacing: 0.02em;
+}
+
+/* ─── Base ──────────────────────────────────────────────────────────────────── */
+
 @layer base {
+    html, body, #root {
+        height: 100%;
+    }
+
     * {
         border-color: hsl(var(--border));
     }
@@ -62,18 +163,13 @@
         color: hsl(var(--foreground));
     }
 
-    html, body, #root {
-        height: 100%;
-    }
-
     /* Wide-screen shell: pad, centre, round and raise the app at ≥ 1920 px */
     @media (min-width: 1920px) {
         body {
-            /* Dot-grid pattern over a very dark base */
-            background-color: hsl(222.2 84% 2.5%);
+            background-color: hsl(var(--background) / 0.5);
             background-image: radial-gradient(
                 circle,
-                hsl(217.2 32.6% 22% / 0.6) 1px,
+                hsl(var(--border) / 0.8) 1px,
                 transparent 1px
             );
             background-size: 24px 24px;
@@ -91,9 +187,9 @@
             overflow: hidden;
             height: auto;
             box-shadow:
-                0 0 0 1px hsl(217.2 32.6% 22% / 0.8),
-                0 8px 16px hsl(222.2 84% 1% / 0.6),
-                0 24px 48px hsl(222.2 84% 1% / 0.4);
+                0 0 0 1px hsl(var(--border) / 0.8),
+                0 8px 16px hsl(var(--background) / 0.8),
+                0 24px 48px hsl(var(--background) / 0.6);
         }
     }
 
@@ -114,6 +210,16 @@
 
     ::-webkit-scrollbar-thumb:hover {
         background: hsl(var(--muted-foreground) / 0.4);
+    }
+
+    /* Terminal: green scrollbar */
+    [data-theme="terminal"] ::-webkit-scrollbar-thumb {
+        background: hsl(120 70% 25%);
+        border-radius: 0;
+    }
+
+    [data-theme="terminal"] ::-webkit-scrollbar-thumb:hover {
+        background: hsl(120 100% 35%);
     }
 }
 
