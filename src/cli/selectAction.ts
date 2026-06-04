@@ -30,14 +30,21 @@ function defaultExportPath(channel: Channel, fmt: ExportFormat): string
     return `./exports/${name}-${todayStr()}.${EXT[fmt]}`;
 }
 
-function dateToOldest(dateStr: string): string 
+function dateToOldest(dateStr: string): string
 {
     return (Date.parse(`${dateStr}T00:00:00Z`) / 1000).toString();
 }
 
-function dateToLatest(dateStr: string): string 
+function dateToLatest(dateStr: string): string
 {
     return ((Date.parse(`${dateStr}T00:00:00Z`) + 86_400_000) / 1000).toString();
+}
+
+function validateDate(v: string): true | string
+{
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return 'Use YYYY-MM-DD format';
+    if (isNaN(Date.parse(`${v}T00:00:00Z`))) return 'Invalid date';
+    return true;
 }
 
 async function runExportPrompts(
@@ -80,11 +87,11 @@ async function runExportPrompts(
     {
         const start = await input({
             message: 'Start date (YYYY-MM-DD):',
-            validate: v => /^\d{4}-\d{2}-\d{2}$/.test(v) || 'Use YYYY-MM-DD format',
+            validate: validateDate,
         });
         const end = await input({
             message: 'End date (YYYY-MM-DD):',
-            validate: v => /^\d{4}-\d{2}-\d{2}$/.test(v) || 'Use YYYY-MM-DD format',
+            validate: validateDate,
         });
         oldest = dateToOldest(start);
         latest = dateToLatest(end);
@@ -255,7 +262,7 @@ export async function selectAction(
         {
             const dateStr = await input({
                 message: 'From date (YYYY-MM-DD):',
-                validate: v => /^\d{4}-\d{2}-\d{2}$/.test(v) || 'Use YYYY-MM-DD format',
+                validate: validateDate,
             });
 
             const oldest = (Date.parse(`${dateStr}T00:00:00Z`) / 1000).toString();
@@ -289,15 +296,30 @@ export async function selectAction(
             let hasMore = result.hasMore;
             let cursor = result.nextCursor;
 
-            while (hasMore) 
+            while (hasMore)
             {
                 const loadMore = await confirm('Load more messages?');
-                if (!loadMore) 
+                if (!loadMore)
                 {
                     break;
                 }
                 const spin2 = spinner('Fetching more…');
-                const more = await fetchHistory(client, workspace, channel.id, { cursor, oldest });
+                let more;
+                try
+                {
+                    more = await fetchHistory(client, workspace, channel.id, { cursor, oldest });
+                }
+                catch (err)
+                {
+                    spin2.stop();
+                    const apiErr = err as { data?: { error?: string } };
+                    if (apiErr.data?.error === 'not_in_channel')
+                    {
+                        console.error(chalk.red(`You haven't joined ${channel.name} — join it in Slack to read its history.`));
+                        break;
+                    }
+                    throw err;
+                }
                 spin2.stop();
                 await displayMessages(client, workspace, more.messages);
                 hasMore = more.hasMore;
