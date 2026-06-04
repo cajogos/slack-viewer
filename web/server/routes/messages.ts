@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { getWorkspace } from '../context.js';
 import { fetchHistory } from '../../../src/api/messages.js';
-import { resolveMentionIds, resolveChannelIds } from '../../../src/utils/mrkdwn.js';
+import { resolveMentionIds, resolveChannelIds, resolveEmojiShortcodes } from '../../../src/utils/mrkdwn.js';
 
 export const messagesRoute = new Hono();
 
@@ -30,7 +30,7 @@ messagesRoute.get('/workspaces/:ws/channels/:channelId/messages', async (c) =>
     {
         let text = await resolveMentionIds(msg.text, ctx.client, ctx.teamId);
         text = await resolveChannelIds(text, ctx.client);
-        msg.text = text;
+        msg.text = resolveEmojiShortcodes(text);
         if (msg.avatarUrl && msg.userId !== 'bot')
         {
             msg.avatarUrl = `/api/workspaces/${encodeURIComponent(ws)}/avatars/${encodeURIComponent(msg.userId)}`;

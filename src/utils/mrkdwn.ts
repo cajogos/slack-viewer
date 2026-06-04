@@ -212,6 +212,15 @@ export async function resolveMentionIds(
     });
 }
 
+// Replaces standard emoji shortcodes (:name:) with Unicode characters in raw text.
+// Intended for server-side pre-processing so clients receive clean Unicode.
+export function resolveEmojiShortcodes(text: string): string
+{
+    return text.replace(/:([a-z0-9_+\-]+):/g, (match, name: string) =>
+        nodeEmoji.get(SLACK_EMOJI_ALIASES[name] ?? name) ?? match,
+    );
+}
+
 // Replaces <#C123> tokens (bare channel IDs) with <#C123|name> in raw mrkdwn.
 export async function resolveChannelIds(
     text: string,

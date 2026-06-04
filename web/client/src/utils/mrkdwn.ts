@@ -1,14 +1,4 @@
-import * as nodeEmoji from 'node-emoji';
-
 type Format = 'plain' | 'markdown' | 'html';
-
-// Slack shortcodes that differ from node-emoji's key names
-const SLACK_EMOJI_ALIASES: Record<string, string> = {
-    thumbsup: '+1',
-    thumbsdown: '-1',
-    thinking_face: 'thinking',
-    face_with_rolling_eyes: 'roll_eyes',
-};
 
 function escHtml(s: string): string
 {
@@ -88,23 +78,6 @@ export function mrkdwnToText(text: string, opts?: { format?: Format; emojiMap?: 
         }
         return `#${channelId}`;
     });
-
-    // Standard emoji → Unicode BEFORE bold/italic so :name_with_underscores: can't be
-    // corrupted by the italic regex. In HTML mode, only text segments are touched.
-    if (fmt === 'html')
-    {
-        result = result.replace(/(?<=>|^)([^<]*)(?=<|$)/g, (_, segment: string) =>
-            segment.replace(/:([a-z0-9_+\-]+):/g, (match, name: string) =>
-                nodeEmoji.get(SLACK_EMOJI_ALIASES[name] ?? name) ?? match,
-            ),
-        );
-    }
-    else
-    {
-        result = result.replace(/:([a-z0-9_+\-]+):/g, (match, name: string) =>
-            nodeEmoji.get(SLACK_EMOJI_ALIASES[name] ?? name) ?? match,
-        );
-    }
 
     // Bold: *text*
     result = result.replace(/\*([^*\n]+)\*/g, (_, bold: string) =>
