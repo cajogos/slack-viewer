@@ -1,6 +1,5 @@
 import { useRef, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { MessageItem } from '@/components/MessageItem';
 import { LoadMoreButton } from '@/components/LoadMoreButton';
@@ -19,7 +18,7 @@ interface MessageFeedProps
 export function MessageFeed({ workspace, channel, onThreadOpen, emojiMap }: MessageFeedProps)
 {
     const { messages, hasMore, isLoading, error, loadMore } = useMessages(workspace, channel.id);
-    const bottomRef = useRef<HTMLDivElement>(null);
+    const scrollRef = useRef<HTMLDivElement>(null);
     const shouldScrollRef = useRef(false);
 
     // Arm the scroll flag whenever the channel changes
@@ -28,13 +27,14 @@ export function MessageFeed({ workspace, channel, onThreadOpen, emojiMap }: Mess
         shouldScrollRef.current = true;
     }, [channel.id]);
 
-    // Execute the scroll once messages have loaded
+    // Scroll to bottom once messages have loaded
     useEffect(() =>
     {
         if (shouldScrollRef.current && messages.length > 0)
         {
             shouldScrollRef.current = false;
-            bottomRef.current?.scrollIntoView({ behavior: 'instant' });
+            const el = scrollRef.current;
+            if (el) el.scrollTop = el.scrollHeight;
         }
     }, [messages]);
 
@@ -50,7 +50,7 @@ export function MessageFeed({ workspace, channel, onThreadOpen, emojiMap }: Mess
                 <ExportMenu workspace={workspace} channel={channel} />
             </div>
 
-            <ScrollArea className="flex-1">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto">
                 <div className="py-2 flex flex-col justify-end min-h-full">
                     <LoadMoreButton hasMore={hasMore} isLoading={isLoading && messages.length > 0} onLoadMore={loadMore} />
                     {isLoading && messages.length === 0 && (
@@ -86,9 +86,8 @@ export function MessageFeed({ workspace, channel, onThreadOpen, emojiMap }: Mess
                             />
                         </div>
                     ))}
-                    <div ref={bottomRef} />
                 </div>
-            </ScrollArea>
+            </div>
         </div>
     );
 }
