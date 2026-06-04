@@ -30,8 +30,22 @@ export async function listEmoji(client: WebClient, teamId: string): Promise<Reco
         // Cache miss or stale — fetch fresh
     }
 
-    const result = await withRateLimit(() => (client.emoji as { list: () => Promise<{ emoji?: Record<string, string> }> }).list());
-    const emoji = result.emoji ?? {};
+    let emoji: Record<string, string>;
+    try
+    {
+        const result = await withRateLimit(() => (client.emoji as { list: () => Promise<{ emoji?: Record<string, string> }> }).list());
+        emoji = result.emoji ?? {};
+    }
+    catch (err)
+    {
+        const code = (err as { data?: { error?: string } }).data?.error;
+        if (code === 'missing_scope')
+        {
+            console.warn(`[emoji] Token lacks emoji:read scope — custom emoji disabled. Add it at api.slack.com/apps.`);
+            return {};
+        }
+        throw err;
+    }
 
     await mkdir(CACHE_DIR, { recursive: true });
     await writeFile(cachePath, JSON.stringify({ updatedAt: Date.now(), emoji } satisfies EmojiCache));
