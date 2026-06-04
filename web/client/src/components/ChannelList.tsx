@@ -1,4 +1,5 @@
-import { Hash, Lock, MessageSquare, Users } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronDown, ChevronRight, Hash, Lock, MessageSquare, Users } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -59,6 +60,18 @@ function ChannelButton({ ch, selectedChannelId, onSelect }: { ch: Channel; selec
 
 export function ChannelList({ channels, selectedChannelId, isLoading, isFiltered, onSelect }: ChannelListProps)
 {
+    const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+    const toggleGroup = (label: string) =>
+    {
+        setCollapsed(prev =>
+        {
+            const next = new Set(prev);
+            if (next.has(label)) { next.delete(label); } else { next.add(label); }
+            return next;
+        });
+    };
+
     if (isLoading)
     {
         return (
@@ -90,18 +103,29 @@ export function ChannelList({ channels, selectedChannelId, isLoading, isFiltered
     return (
         <ScrollArea className="flex-1">
             <div className="py-2">
-                {visibleGroups.map(group => (
-                    <div key={group.label}>
-                        <div className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                            {group.label}
+                {visibleGroups.map(group =>
+                {
+                    const isCollapsed = collapsed.has(group.label);
+                    const Chevron = isCollapsed ? ChevronRight : ChevronDown;
+                    return (
+                        <div key={group.label}>
+                            <button
+                                onClick={() => toggleGroup(group.label)}
+                                className="w-full flex items-center gap-1 px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                            >
+                                <Chevron className="h-3 w-3 flex-shrink-0" />
+                                {group.label}
+                            </button>
+                            {!isCollapsed && (
+                                <div className="space-y-0.5">
+                                    {group.channels.map(ch => (
+                                        <ChannelButton key={ch.id} ch={ch} selectedChannelId={selectedChannelId} onSelect={onSelect} />
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                        <div className="space-y-0.5">
-                            {group.channels.map(ch => (
-                                <ChannelButton key={ch.id} ch={ch} selectedChannelId={selectedChannelId} onSelect={onSelect} />
-                            ))}
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </ScrollArea>
     );
