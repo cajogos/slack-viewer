@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { MessageItem } from '@/components/MessageItem';
@@ -20,24 +20,40 @@ export function MessageFeed({ workspace, channel, onThreadOpen, emojiMap, onExpo
 {
     const { messages, hasMore, isLoading, error, loadMore } = useMessages(workspace, channel.id);
     const scrollRef = useRef<HTMLDivElement>(null);
-    const shouldScrollRef = useRef(false);
+    const pinnedToBottomRef = useRef(true);
 
-    // Arm the scroll flag whenever the channel changes
+    // Pin to bottom whenever the channel changes
     useEffect(() =>
     {
-        shouldScrollRef.current = true;
+        pinnedToBottomRef.current = true;
     }, [channel.id]);
 
-    // Scroll to bottom once messages have loaded
+    // ResizeObserver: snap to bottom whenever content grows and we're pinned.
+    // This handles both the initial message load and images expanding after load.
     useEffect(() =>
     {
-        if (shouldScrollRef.current && messages.length > 0)
+        const scrollEl = scrollRef.current;
+        const contentEl = scrollEl?.firstElementChild;
+        if (!scrollEl || !contentEl) return;
+
+        const observer = new ResizeObserver(() =>
         {
-            shouldScrollRef.current = false;
-            const el = scrollRef.current;
-            if (el) el.scrollTop = el.scrollHeight;
-        }
-    }, [messages]);
+            if (pinnedToBottomRef.current)
+            {
+                scrollEl.scrollTop = scrollEl.scrollHeight;
+            }
+        });
+
+        observer.observe(contentEl);
+        return () => observer.disconnect();
+    }, []);
+
+    const handleScroll = useCallback(() =>
+    {
+        const el = scrollRef.current;
+        if (!el) return;
+        pinnedToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+    }, []);
 
     return (
         <div className="flex flex-col h-full">
@@ -51,7 +67,7 @@ export function MessageFeed({ workspace, channel, onThreadOpen, emojiMap, onExpo
                 <ExportMenu workspace={workspace} channel={channel} onExport={onExport} />
             </div>
 
-            <div ref={scrollRef} className="flex-1 overflow-y-auto">
+            <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto">
                 <div className="max-w-4xl mx-auto py-2 flex flex-col justify-end min-h-full">
                     <LoadMoreButton hasMore={hasMore} isLoading={isLoading && messages.length > 0} onLoadMore={loadMore} />
                     {isLoading && messages.length === 0 && (
