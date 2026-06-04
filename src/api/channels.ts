@@ -3,6 +3,27 @@ import { withRateLimit } from './client.js';
 import { getDisplayName, getUserInfo } from './users.js';
 import type { Channel } from '../types/slack.js';
 
+const channelNameCache = new Map<string, string>();
+
+export async function getChannelName(client: WebClient, channelId: string): Promise<string>
+{
+    if (channelNameCache.has(channelId))
+    {
+        return channelNameCache.get(channelId)!;
+    }
+    try
+    {
+        const result = await withRateLimit(() => client.conversations.info({ channel: channelId }));
+        const name = result.channel?.name ?? channelId;
+        channelNameCache.set(channelId, name);
+        return name;
+    }
+    catch
+    {
+        return channelId;
+    }
+}
+
 async function sleep(ms: number): Promise<void>
 {
     return new Promise(resolve => setTimeout(resolve, ms));

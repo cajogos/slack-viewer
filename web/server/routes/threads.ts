@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { getWorkspace } from '../context.js';
 import { fetchThread } from '../../../src/api/threads.js';
+import { resolveMentionIds, resolveChannelIds } from '../../../src/utils/mrkdwn.js';
 
 export const threadsRoute = new Hono();
 
@@ -24,5 +25,13 @@ threadsRoute.get('/workspaces/:ws/channels/:channelId/thread', async (c) =>
     }
 
     const messages = await fetchThread(ctx.client, ctx.teamId, channelId, threadTs);
+
+    await Promise.all(messages.map(async msg =>
+    {
+        let text = await resolveMentionIds(msg.text, ctx.client, ctx.teamId);
+        text = await resolveChannelIds(text, ctx.client);
+        msg.text = text;
+    }));
+
     return c.json({ messages });
 });

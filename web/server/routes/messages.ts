@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { getWorkspace } from '../context.js';
 import { fetchHistory } from '../../../src/api/messages.js';
+import { resolveMentionIds, resolveChannelIds } from '../../../src/utils/mrkdwn.js';
 
 export const messagesRoute = new Hono();
 
@@ -24,6 +25,13 @@ messagesRoute.get('/workspaces/:ws/channels/:channelId/messages', async (c) =>
         oldest,
         latest,
     });
+
+    await Promise.all(result.messages.map(async msg =>
+    {
+        let text = await resolveMentionIds(msg.text, ctx.client, ctx.teamId);
+        text = await resolveChannelIds(text, ctx.client);
+        msg.text = text;
+    }));
 
     return c.json(result);
 });

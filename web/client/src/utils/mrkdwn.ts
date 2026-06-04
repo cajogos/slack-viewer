@@ -68,6 +68,16 @@ export function mrkdwnToText(text: string, opts?: { format?: Format }): string
         return `#${name}`;
     });
 
+    // Bare channel mentions: <#C123> (fallback when server couldn't resolve the name)
+    result = result.replace(/<#([A-Z0-9]+)>/g, (_, channelId: string) =>
+    {
+        if (fmt === 'html')
+        {
+            return `<span class="text-blue-400 font-medium">#${escHtml(channelId)}</span>`;
+        }
+        return `#${channelId}`;
+    });
+
     // Bold: *text*
     result = result.replace(/\*([^*\n]+)\*/g, (_, bold: string) =>
     {

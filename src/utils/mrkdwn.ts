@@ -1,5 +1,6 @@
 import type { WebClient } from '@slack/web-api';
 import { getDisplayName } from '../api/users.js';
+import { getChannelName } from '../api/channels.js';
 
 type Format = 'plain' | 'markdown' | 'html'
 
@@ -71,6 +72,16 @@ export function mrkdwnToText(text: string, opts?: { format?: Format }): string
         return `#${name}`;
     });
 
+    // Bare channel mentions: <#C123> (no name — async resolver didn't run or couldn't resolve)
+    result = result.replace(/<#([A-Z0-9]+)>/g, (_, channelId: string) =>
+    {
+        if (fmt === 'html')
+        {
+            return `<span class="channel">#${escHtml(channelId)}</span>`;
+        }
+        return `#${channelId}`;
+    });
+
     // Bold: *text* — processed before user mentions so @display_names aren't corrupted
     result = result.replace(/\*([^*\n]+)\*/g, (_, bold: string) =>
     {
@@ -140,7 +151,8 @@ export async function mrkdwnToTextAsync(
     format: Format = 'plain',
 ): Promise<string>
 {
-    const resolved = await resolveMentionIds(text, client, teamId);
+    let resolved = await resolveMentionIds(text, client, teamId);
+    resolved = await resolveChannelIds(resolved, client);
     return mrkdwnToText(resolved, { format });
 }
 
@@ -150,10 +162,10 @@ export async function resolveMentionIds(
     text: string,
     client: WebClient,
     teamId: string,
-): Promise<string> 
+): Promise<string>
 {
     const ids = [...new Set([...text.matchAll(/<@([A-Z0-9]+)>/g)].map(m => m[1]))];
-    if (ids.length === 0) 
+    if (ids.length === 0)
     {
         return text;
     }
@@ -162,9 +174,32 @@ export async function resolveMentionIds(
         await Promise.all(ids.map(async id => [id, await getDisplayName(client, teamId, id)] as const)),
     );
 
-    return text.replace(/<@([A-Z0-9]+)>/g, (_, id: string) => 
+    return text.replace(/<@([A-Z0-9]+)>/g, (_, id: string) =>
     {
         const name = nameMap.get(id) ?? id;
         return `<@${id}|${name}>`;
+    });
+}
+
+// Replaces <#C123> tokens (bare channel IDs) with <#C123|name> in raw mrkdwn.
+export async function resolveChannelIds(
+    text: string,
+    client: WebClient,
+): Promise<string>
+{
+    const ids = [...new Set([...text.matchAll(/<#([A-Z0-9]+)>/g)].map(m => m[1]))];
+    if (ids.length === 0)
+    {
+        return text;
+    }
+
+    const nameMap = new Map(
+        await Promise.all(ids.map(async id => [id, await getChannelName(client, id)] as const)),
+    );
+
+    return text.replace(/<#([A-Z0-9]+)>/g, (_, id: string) =>
+    {
+        const name = nameMap.get(id) ?? id;
+        return `<#${id}|${name}>`;
     });
 }
