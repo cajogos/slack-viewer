@@ -41,6 +41,7 @@ export function ChannelSidebar({ workspace, selectedChannelId, onSelect }: Chann
                 channels={filtered}
                 selectedChannelId={selectedChannelId}
                 isLoading={isLoading}
+                isFiltered={search.trim().length > 0}
                 onSelect={onSelect}
             />
         </div>

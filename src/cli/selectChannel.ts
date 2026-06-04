@@ -75,29 +75,25 @@ function buildChoices(
         items.push(new Separator());
     }
 
-    const regularChannels = allChannels.filter(
-        ch => ch.type === 'public' || ch.type === 'private',
-    );
-    const dmChannels = allChannels.filter(
-        ch => ch.type === 'im' || ch.type === 'mpim',
-    );
+    const groups: { label: string; types: Channel['type'][]; disabled?: boolean }[] = [
+        { label: '── Public Channels ──', types: ['public'], disabled: true },
+        { label: '── Private Channels ──', types: ['private'] },
+        { label: '── Direct Messages ──', types: ['im'] },
+        { label: '── Group DMs ──', types: ['mpim'] },
+    ];
 
-    items.push(new Separator('── Channels ──'));
-    for (const ch of regularChannels) 
+    for (const group of groups)
     {
-        items.push({
-            value: ch,
-            name: channelLabel(ch),
-            ...((!ch.isMember && ch.type === 'public') ? { disabled: true } : {}),
-        });
-    }
-
-    if (dmChannels.length > 0) 
-    {
-        items.push(new Separator('── Direct Messages ──'));
-        for (const ch of dmChannels) 
+        const groupChannels = allChannels.filter(ch => group.types.includes(ch.type));
+        if (groupChannels.length === 0) continue;
+        items.push(new Separator(group.label));
+        for (const ch of groupChannels)
         {
-            items.push({ value: ch, name: channelLabel(ch) });
+            items.push({
+                value: ch,
+                name: channelLabel(ch),
+                ...((!ch.isMember && ch.type === 'public') ? { disabled: true } : {}),
+            });
         }
     }
 
