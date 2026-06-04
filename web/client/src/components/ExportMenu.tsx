@@ -17,9 +17,10 @@ interface ExportMenuProps
     workspace: string;
     channel: Channel;
     threadTs?: string;
+    onExport?: (label: string) => void;
 }
 
-export function ExportMenu({ workspace, channel, threadTs }: ExportMenuProps)
+export function ExportMenu({ workspace, channel, threadTs, onExport }: ExportMenuProps)
 {
     const [isExporting, setIsExporting] = useState(false);
 
@@ -45,6 +46,7 @@ export function ExportMenu({ workspace, channel, threadTs }: ExportMenuProps)
             a.download = filename;
             a.click();
             URL.revokeObjectURL(url);
+            onExport?.(`Exported #${channel.name} (${format})`);
         }
         catch (err)
         {

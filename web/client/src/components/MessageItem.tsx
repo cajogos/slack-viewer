@@ -21,15 +21,21 @@ function initials(name: string): string
     return name.slice(0, 2).toUpperCase();
 }
 
+function fileProxyUrl(workspace: string, urlPrivate: string): string
+{
+    return `/api/workspaces/${encodeURIComponent(workspace)}/files?url=${encodeURIComponent(urlPrivate)}`;
+}
+
 interface MessageItemProps
 {
     message: Message;
+    workspace?: string;
     onThreadClick?: (ts: string) => void;
     isReply?: boolean;
     emojiMap?: Record<string, string>;
 }
 
-export function MessageItem({ message, onThreadClick, isReply = false, emojiMap }: MessageItemProps)
+export function MessageItem({ message, workspace, onThreadClick, isReply = false, emojiMap }: MessageItemProps)
 {
     const colorClass = userColor(message.userId);
     const html = mrkdwnToText(message.text, { format: 'html', emojiMap });
@@ -59,9 +65,11 @@ export function MessageItem({ message, onThreadClick, isReply = false, emojiMap 
                                 className="inline-flex items-center gap-1 text-xs bg-white/10 hover:bg-white/15 rounded px-1.5 py-0.5 cursor-default text-muted-foreground"
                                 title={`:${r.name}:`}
                             >
-                                {emojiMap?.[r.name]
-                                    ? <img src={emojiMap[r.name]} alt={`:${r.name}:`} style={{ height: '1em', width: 'auto', display: 'inline-block', verticalAlign: '-0.1em' }} />
-                                    : <span>:{r.name}:</span>
+                                {r.unicode
+                                    ? <span style={{ lineHeight: 1 }}>{r.unicode}</span>
+                                    : emojiMap?.[r.name]
+                                        ? <img src={emojiMap[r.name]} alt={`:${r.name}:`} style={{ height: '1em', width: 'auto', display: 'inline-block', verticalAlign: '-0.1em' }} />
+                                        : <span>:{r.name}:</span>
                                 }
                                 <span className="text-foreground/70">{r.count}</span>
                             </span>
@@ -69,13 +77,54 @@ export function MessageItem({ message, onThreadClick, isReply = false, emojiMap 
                     </div>
                 )}
                 {message.files && message.files.length > 0 && (
-                    <div className="mt-1.5 space-y-0.5">
-                        {message.files.map((f, i) => (
-                            <div key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <span>📎</span>
-                                <span className="truncate">{f.name}</span>
-                            </div>
-                        ))}
+                    <div className="mt-1.5 space-y-1">
+                        {message.files.map((f, i) =>
+                        {
+                            const proxyUrl = workspace && f.urlPrivate
+                                ? fileProxyUrl(workspace, f.urlPrivate)
+                                : null;
+                            const isImage = f.mimetype?.startsWith('image/');
+                            const isVideo = f.mimetype?.startsWith('video/');
+
+                            if (proxyUrl && isImage)
+                            {
+                                return (
+                                    <div key={i} className="mt-1">
+                                        <img
+                                            src={proxyUrl}
+                                            alt={f.name}
+                                            className="max-w-sm max-h-64 rounded object-contain bg-white/5"
+                                            loading="lazy"
+                                        />
+                                        <div className="text-xs text-muted-foreground mt-0.5">{f.name}</div>
+                                    </div>
+                                );
+                            }
+
+                            if (proxyUrl && isVideo)
+                            {
+                                return (
+                                    <div key={i} className="mt-1">
+                                        <video
+                                            src={proxyUrl}
+                                            controls
+                                            className="max-w-sm max-h-64 rounded"
+                                        />
+                                        <div className="text-xs text-muted-foreground mt-0.5">{f.name}</div>
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <div key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <span>📎</span>
+                                    {proxyUrl
+                                        ? <a href={proxyUrl} download={f.name} className="truncate hover:text-foreground hover:underline">{f.name}</a>
+                                        : <span className="truncate">{f.name}</span>
+                                    }
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
                 {!isReply && message.replyCount != null && message.replyCount > 0 && onThreadClick && (

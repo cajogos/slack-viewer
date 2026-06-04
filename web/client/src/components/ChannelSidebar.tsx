@@ -1,19 +1,19 @@
 import { useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { ChannelList } from '@/components/ChannelList';
-import { useChannels } from '@/hooks/useChannels';
 import type { Channel } from '@/types';
 
 interface ChannelSidebarProps
 {
-    workspace: string | null;
+    channels: Channel[];
+    isLoading: boolean;
+    error: string | null;
     selectedChannelId: string | null;
     onSelect: (channel: Channel) => void;
 }
 
-export function ChannelSidebar({ workspace, selectedChannelId, onSelect }: ChannelSidebarProps)
+export function ChannelSidebar({ channels, isLoading, error, selectedChannelId, onSelect }: ChannelSidebarProps)
 {
-    const { channels, isLoading, error } = useChannels(workspace);
     const [search, setSearch] = useState('');
 
     const tokens = search.trim().toLowerCase().split(/\s+/).filter(Boolean);

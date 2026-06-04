@@ -7,6 +7,7 @@ export interface WorkspaceContext
     client: WebClient;
     teamId: string;
     name: string;
+    token: string;
 }
 
 let registry: Map<string, WorkspaceContext> | null = null;
@@ -26,7 +27,7 @@ export async function getRegistry(): Promise<Map<string, WorkspaceContext>>
         const client = createClient(profile.token);
         const auth = await client.auth.test();
         const teamId = (auth.team_id as string | undefined) ?? profile.name;
-        registry.set(profile.name, { client, teamId, name: profile.name });
+        registry.set(profile.name, { client, teamId, name: profile.name, token: profile.token });
     }
 
     return registry;

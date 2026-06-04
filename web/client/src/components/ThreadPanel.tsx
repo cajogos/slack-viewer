@@ -39,7 +39,7 @@ export function ThreadPanel({ workspace, channel, threadTs, onClose, emojiMap }:
                             <div className="px-4 py-3 text-sm text-red-400">{error}</div>
                         )}
                         {messages.map((msg, i) => (
-                            <MessageItem key={msg.ts} message={msg} isReply={i > 0} emojiMap={emojiMap} />
+                            <MessageItem key={msg.ts} message={msg} workspace={workspace} isReply={i > 0} emojiMap={emojiMap} />
                         ))}
                     </div>
                 </ScrollArea>

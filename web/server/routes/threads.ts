@@ -31,6 +31,15 @@ threadsRoute.get('/workspaces/:ws/channels/:channelId/thread', async (c) =>
         let text = await resolveMentionIds(msg.text, ctx.client, ctx.teamId);
         text = await resolveChannelIds(text, ctx.client);
         msg.text = resolveEmojiShortcodes(text);
+        if (msg.reactions)
+        {
+            msg.reactions = msg.reactions.map(r =>
+            {
+                const resolved = resolveEmojiShortcodes(`:${r.name}:`);
+                const unicode = resolved !== `:${r.name}:` ? resolved : undefined;
+                return { ...r, unicode };
+            });
+        }
         if (msg.avatarUrl && msg.userId !== 'bot')
         {
             msg.avatarUrl = `/api/workspaces/${encodeURIComponent(ws)}/avatars/${encodeURIComponent(msg.userId)}`;

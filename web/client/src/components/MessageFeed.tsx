@@ -13,9 +13,10 @@ interface MessageFeedProps
     channel: Channel;
     onThreadOpen: (channelId: string, threadTs: string) => void;
     emojiMap?: Record<string, string>;
+    onExport?: (label: string) => void;
 }
 
-export function MessageFeed({ workspace, channel, onThreadOpen, emojiMap }: MessageFeedProps)
+export function MessageFeed({ workspace, channel, onThreadOpen, emojiMap, onExport }: MessageFeedProps)
 {
     const { messages, hasMore, isLoading, error, loadMore } = useMessages(workspace, channel.id);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -47,11 +48,11 @@ export function MessageFeed({ workspace, channel, onThreadOpen, emojiMap }: Mess
                         <span className="text-xs text-muted-foreground">{channel.memberCount} members</span>
                     )}
                 </div>
-                <ExportMenu workspace={workspace} channel={channel} />
+                <ExportMenu workspace={workspace} channel={channel} onExport={onExport} />
             </div>
 
             <div ref={scrollRef} className="flex-1 overflow-y-auto">
-                <div className="py-2 flex flex-col justify-end min-h-full">
+                <div className="max-w-4xl mx-auto py-2 flex flex-col justify-end min-h-full">
                     <LoadMoreButton hasMore={hasMore} isLoading={isLoading && messages.length > 0} onLoadMore={loadMore} />
                     {isLoading && messages.length === 0 && (
                         <div className="flex items-center justify-center py-12">
@@ -81,6 +82,7 @@ export function MessageFeed({ workspace, channel, onThreadOpen, emojiMap }: Mess
                             )}
                             <MessageItem
                                 message={msg}
+                                workspace={workspace}
                                 onThreadClick={ts => onThreadOpen(channel.id, ts)}
                                 emojiMap={emojiMap}
                             />

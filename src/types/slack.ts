@@ -22,6 +22,7 @@ export interface Message {
 export interface Reaction {
   name: string
   count: number
+  unicode?: string
 }
 
 export interface FileAttachment {
