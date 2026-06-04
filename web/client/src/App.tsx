@@ -6,6 +6,7 @@ import { MessageFeed } from '@/components/MessageFeed';
 import { ThreadPanel } from '@/components/ThreadPanel';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { fetchWorkspaces } from '@/api/client';
+import { useEmoji } from '@/hooks/useEmoji';
 import type { Channel } from '@/types';
 
 interface OpenThread
@@ -21,6 +22,7 @@ export function App()
     const [selectedWorkspace, setSelectedWorkspace] = useState<string | null>(null);
     const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
     const [openThread, setOpenThread] = useState<OpenThread | null>(null);
+    const emojiMap = useEmoji(selectedWorkspace);
 
     useEffect(() =>
     {
@@ -84,6 +86,7 @@ export function App()
                                 workspace={selectedWorkspace}
                                 channel={selectedChannel}
                                 onThreadOpen={handleThreadOpen}
+                                emojiMap={emojiMap}
                             />
                         )
                         : (
@@ -102,6 +105,7 @@ export function App()
                         channel={openThread.channel}
                         threadTs={openThread.threadTs}
                         onClose={() => setOpenThread(null)}
+                        emojiMap={emojiMap}
                     />
                 )}
             </div>

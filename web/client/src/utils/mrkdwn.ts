@@ -5,9 +5,10 @@ function escHtml(s: string): string
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-export function mrkdwnToText(text: string, opts?: { format?: Format }): string
+export function mrkdwnToText(text: string, opts?: { format?: Format; emojiMap?: Record<string, string> }): string
 {
     const fmt = opts?.format ?? 'html';
+    const emojiMap = opts?.emojiMap;
     let result = text;
 
     // Code blocks first (prevent inner parsing)
@@ -134,14 +135,24 @@ export function mrkdwnToText(text: string, opts?: { format?: Format }): string
         return `@${userId}`;
     });
 
-    // Escape remaining plain text in html mode
+    // Escape remaining plain text and substitute custom emoji in html mode.
+    // Operates only on text segments (between tags) so code blocks are untouched.
     if (fmt === 'html')
     {
-        // Only escape segments that haven't been wrapped in tags
-        // Split by existing HTML tags and escape the text parts
         result = result.replace(/(?<=>|^)([^<]*)(?=<|$)/g, (_, plain: string) =>
-            plain.replace(/&(?!amp;|lt;|gt;|quot;)/g, '&amp;')
-        );
+        {
+            let segment = plain.replace(/&(?!amp;|lt;|gt;|quot;)/g, '&amp;');
+            if (emojiMap)
+            {
+                segment = segment.replace(/:([a-z0-9_+\-]+):/g, (match, name: string) =>
+                {
+                    const url = emojiMap[name];
+                    if (!url) return match;
+                    return `<img src="${escHtml(url)}" alt=":${escHtml(name)}:" title=":${escHtml(name)}:" style="height:1.2em;width:auto;display:inline-block;vertical-align:-0.2em;" />`;
+                });
+            }
+            return segment;
+        });
     }
 
     return result;

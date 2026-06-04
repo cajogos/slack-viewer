@@ -12,9 +12,10 @@ interface ThreadPanelProps
     channel: Channel;
     threadTs: string;
     onClose: () => void;
+    emojiMap?: Record<string, string>;
 }
 
-export function ThreadPanel({ workspace, channel, threadTs, onClose }: ThreadPanelProps)
+export function ThreadPanel({ workspace, channel, threadTs, onClose, emojiMap }: ThreadPanelProps)
 {
     const { messages, isLoading, error } = useThread(workspace, channel.id, threadTs);
 
@@ -38,7 +39,7 @@ export function ThreadPanel({ workspace, channel, threadTs, onClose }: ThreadPan
                             <div className="px-4 py-3 text-sm text-red-400">{error}</div>
                         )}
                         {messages.map((msg, i) => (
-                            <MessageItem key={msg.ts} message={msg} isReply={i > 0} />
+                            <MessageItem key={msg.ts} message={msg} isReply={i > 0} emojiMap={emojiMap} />
                         ))}
                     </div>
                 </ScrollArea>

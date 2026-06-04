@@ -30,6 +30,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# Local cache (emoji lists and images)
+data/
+
 # Logs
 *.log
 npm-debug.log*

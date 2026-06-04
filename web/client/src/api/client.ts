@@ -65,6 +65,11 @@ export async function fetchThread(
     );
 }
 
+export async function fetchEmoji(workspace: string): Promise<{ emoji: Record<string, string> }>
+{
+    return apiFetch(`${BASE}/workspaces/${encodeURIComponent(workspace)}/emoji`);
+}
+
 export async function downloadExport(
     workspace: string,
     channelId: string,

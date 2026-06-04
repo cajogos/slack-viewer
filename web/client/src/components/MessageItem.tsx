@@ -26,12 +26,13 @@ interface MessageItemProps
     message: Message;
     onThreadClick?: (ts: string) => void;
     isReply?: boolean;
+    emojiMap?: Record<string, string>;
 }
 
-export function MessageItem({ message, onThreadClick, isReply = false }: MessageItemProps)
+export function MessageItem({ message, onThreadClick, isReply = false, emojiMap }: MessageItemProps)
 {
     const colorClass = userColor(message.userId);
-    const html = mrkdwnToText(message.text, { format: 'html' });
+    const html = mrkdwnToText(message.text, { format: 'html', emojiMap });
 
     return (
         <div className={`flex gap-3 py-2 px-3 hover:bg-white/5 rounded-md group ${isReply ? 'ml-8' : ''}`}>
@@ -53,8 +54,13 @@ export function MessageItem({ message, onThreadClick, isReply = false }: Message
                             <span
                                 key={r.name}
                                 className="inline-flex items-center gap-1 text-xs bg-white/10 hover:bg-white/15 rounded px-1.5 py-0.5 cursor-default text-muted-foreground"
+                                title={`:${r.name}:`}
                             >
-                                :{r.name}: <span className="text-foreground/70">{r.count}</span>
+                                {emojiMap?.[r.name]
+                                    ? <img src={emojiMap[r.name]} alt={`:${r.name}:`} style={{ height: '1em', width: 'auto', display: 'inline-block', verticalAlign: '-0.1em' }} />
+                                    : <span>:{r.name}:</span>
+                                }
+                                <span className="text-foreground/70">{r.count}</span>
                             </span>
                         ))}
                     </div>

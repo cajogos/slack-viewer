@@ -13,9 +13,10 @@ interface MessageFeedProps
     workspace: string;
     channel: Channel;
     onThreadOpen: (channelId: string, threadTs: string) => void;
+    emojiMap?: Record<string, string>;
 }
 
-export function MessageFeed({ workspace, channel, onThreadOpen }: MessageFeedProps)
+export function MessageFeed({ workspace, channel, onThreadOpen, emojiMap }: MessageFeedProps)
 {
     const { messages, hasMore, isLoading, error, loadMore } = useMessages(workspace, channel.id);
     const bottomRef = useRef<HTMLDivElement>(null);
@@ -81,6 +82,7 @@ export function MessageFeed({ workspace, channel, onThreadOpen }: MessageFeedPro
                             <MessageItem
                                 message={msg}
                                 onThreadClick={ts => onThreadOpen(channel.id, ts)}
+                                emojiMap={emojiMap}
                             />
                         </div>
                     ))}
