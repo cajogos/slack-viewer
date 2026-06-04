@@ -123,66 +123,68 @@ export function App()
 
     return (
         <TooltipProvider>
-            <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
-                <div className="flex flex-1 min-h-0">
-                    {/* Sidebar */}
-                    <div className="w-64 flex-shrink-0 flex flex-col bg-card">
-                        <WorkspaceSwitcher
-                            workspaces={workspaces}
-                            current={selectedWorkspace}
-                            onChange={handleWorkspaceChange}
-                        />
-                        <ChannelSidebar
-                            channels={channels}
-                            isLoading={channelsLoading}
-                            error={channelsError}
-                            selectedChannelId={selectedChannel?.id ?? null}
-                            onSelect={handleChannelSelect}
-                        />
-                    </div>
-
-                    {/* Main content */}
-                    <div className="flex-1 flex flex-col min-w-0">
-                        {recentChannels.length > 0 && selectedWorkspace && (
-                            <RecentChannelsBar
-                                recentChannels={recentChannels}
-                                activeChannelId={selectedChannel?.id ?? null}
-                                onSelect={handleChannelSelect}
-                            />
-                        )}
-                        {selectedWorkspace && selectedChannel
-                            ? (
-                                <MessageFeed
-                                    workspace={selectedWorkspace}
-                                    channel={selectedChannel}
-                                    onThreadOpen={handleThreadOpen}
-                                    emojiMap={emojiMap}
-                                    onExport={(label) => addAction('export', label)}
-                                />
-                            )
-                            : (
-                                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
-                                    <MessageSquare className="h-12 w-12 opacity-30" />
-                                    <p className="text-sm">Select a channel to view messages</p>
-                                </div>
-                            )
-                        }
-                    </div>
-
-                    {/* Thread panel */}
-                    {openThread && selectedWorkspace && (
-                        <ThreadPanel
-                            workspace={selectedWorkspace}
-                            channel={openThread.channel}
-                            threadTs={openThread.threadTs}
-                            onClose={() => setOpenThread(null)}
-                            emojiMap={emojiMap}
-                        />
-                    )}
+            <div className="flex h-screen bg-background text-foreground overflow-hidden">
+                {/* Sidebar — full height */}
+                <div className="w-64 flex-shrink-0 flex flex-col bg-card">
+                    <WorkspaceSwitcher
+                        workspaces={workspaces}
+                        current={selectedWorkspace}
+                        onChange={handleWorkspaceChange}
+                    />
+                    <ChannelSidebar
+                        channels={channels}
+                        isLoading={channelsLoading}
+                        error={channelsError}
+                        selectedChannelId={selectedChannel?.id ?? null}
+                        onSelect={handleChannelSelect}
+                    />
                 </div>
 
-                {/* Bottom action log */}
-                <ActionLogBar log={log} />
+                {/* Main content column */}
+                <div className="flex-1 flex flex-col min-w-0">
+                    <div className="flex flex-1 min-h-0">
+                        <div className="flex-1 flex flex-col min-w-0">
+                            {recentChannels.length > 0 && selectedWorkspace && (
+                                <RecentChannelsBar
+                                    recentChannels={recentChannels}
+                                    activeChannelId={selectedChannel?.id ?? null}
+                                    onSelect={handleChannelSelect}
+                                />
+                            )}
+                            {selectedWorkspace && selectedChannel
+                                ? (
+                                    <MessageFeed
+                                        workspace={selectedWorkspace}
+                                        channel={selectedChannel}
+                                        onThreadOpen={handleThreadOpen}
+                                        emojiMap={emojiMap}
+                                        onExport={(label) => addAction('export', label)}
+                                    />
+                                )
+                                : (
+                                    <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
+                                        <MessageSquare className="h-12 w-12 opacity-30" />
+                                        <p className="text-sm">Select a channel to view messages</p>
+                                    </div>
+                                )
+                            }
+                        </div>
+
+                        {/* Thread panel */}
+                        {openThread && selectedWorkspace && (
+                            <ThreadPanel
+                                workspace={selectedWorkspace}
+                                channel={openThread.channel}
+                                threadTs={openThread.threadTs}
+                                onClose={() => setOpenThread(null)}
+                                emojiMap={emojiMap}
+                            />
+                        )}
+                    </div>
+
+                    {/* Action log — part of the main column, below all content */}
+                    <ActionLogBar log={log} />
+                </div>
             </div>
         </TooltipProvider>
     );
