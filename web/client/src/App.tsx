@@ -123,7 +123,7 @@ export function App()
 
     return (
         <TooltipProvider>
-            <div className="flex h-screen bg-background text-foreground overflow-hidden">
+            <div className="flex h-full bg-background text-foreground overflow-hidden">
                 {/* Sidebar — full height */}
                 <div className="w-64 flex-shrink-0 flex flex-col bg-card">
                     <WorkspaceSwitcher

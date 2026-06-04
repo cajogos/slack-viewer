@@ -62,6 +62,30 @@
         color: hsl(var(--foreground));
     }
 
+    html, body, #root {
+        height: 100%;
+    }
+
+    /* Wide-screen shell: pad, centre, and round the app at ≥ 1920 px */
+    @media (min-width: 1920px) {
+        body {
+            background-color: hsl(222.2 84% 3%);
+            display: flex;
+            align-items: stretch;
+            padding: 1.25rem;
+            box-sizing: border-box;
+        }
+
+        #root {
+            flex: 1;
+            max-width: 1920px;
+            margin: 0 auto;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            height: auto;
+        }
+    }
+
     /* Chrome / Edge scrollbar */
     ::-webkit-scrollbar {
         width: 5px;
