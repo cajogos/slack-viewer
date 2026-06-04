@@ -37,9 +37,9 @@ export async function fetchHistory(
         {
             continue;
         }
-        if (msg.subtype === 'bot_message' && !(msg.text as string | undefined)) 
+        if (msg.subtype === 'bot_message' && !(msg.text as string | undefined))
         {
-            continue;
+            (msg as Record<string, unknown>)['text'] = '🎙️ Potentially a huddle happened here 😊';
         }
 
         const ts = msg.ts ?? '';

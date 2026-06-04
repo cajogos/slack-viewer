@@ -33,9 +33,9 @@ export async function fetchThread(
             {
                 continue;
             }
-            if (msg.subtype === 'bot_message' && !msg.text) 
+            if (msg.subtype === 'bot_message' && !msg.text)
             {
-                continue;
+                (msg as Record<string, unknown>)['text'] = '🎙️ Potentially a huddle happened here 😊';
             }
 
             const ts = msg.ts ?? '';

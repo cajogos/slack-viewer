@@ -88,7 +88,7 @@ describe('fetchHistory', () =>
         expect(messages.find(m => m.text === 'U001 has joined the channel')).toBeUndefined();
     });
 
-    it('filters out bot messages with empty text', async () => 
+    it('shows placeholder for bot messages with empty text (possible huddle)', async () =>
     {
         const client = createMockClient();
         vi.mocked(client.conversations.history).mockResolvedValue({
@@ -100,8 +100,10 @@ describe('fetchHistory', () =>
 
         const { messages } = await fetchHistory(client as never, 'T001', 'C001');
 
-        expect(messages).toHaveLength(1);
-        expect(messages[0].user).toBe('MyBot');
+        expect(messages).toHaveLength(2);
+        // fetchHistory reverses the array (oldest first), so the empty-text bot comes first
+        expect(messages[0]!.text).toContain('huddle');
+        expect(messages[1]!.user).toBe('MyBot');
     });
 
     it('returns hasMore and nextCursor when more pages exist', async () => 
