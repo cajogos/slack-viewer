@@ -13,6 +13,8 @@ A read-only CLI explorer and export tool for Slack. The user navigates workspace
 
 ## Tech Stack
 
+### CLI
+
 | Concern | Library | Notes |
 |---|---|---|
 | Language | TypeScript 5 | Strict mode, ESM (`"type": "module"`) |
@@ -23,20 +25,41 @@ A read-only CLI explorer and export tool for Slack. The user navigates workspace
 | Spinners | `ora` v8 | ESM-only; import as `import ora from 'ora'` |
 | Dev runner | `tsx` | Runs TypeScript directly without a compile step |
 
+### Web UI
+
+| Concern | Library | Notes |
+|---|---|---|
+| API server | `hono` v4 + `@hono/node-server` | Lightweight TypeScript HTTP server on port 3001 |
+| Frontend bundler | `vite` v8 | Proxies `/api/*` to the Hono server during dev |
+| UI framework | React 19 | Strict mode |
+| Styling | Tailwind CSS v4 + `@tailwindcss/vite` | Dark theme by default; no `tailwind.config.ts` needed |
+| Components | shadcn/ui (manual) | Components in `web/client/src/components/ui/` |
+| Icons | `lucide-react` | |
+| Process runner | `concurrently` | `pnpm web` starts both Hono and Vite |
+
 ## Running the Project
 
 ```bash
 # Install dependencies
 pnpm install
 
-# Development — run without compiling
-pnpm dev
+# CLI — interactive terminal UI
+pnpm cli          # preferred alias
+pnpm dev          # backwards-compat alias
 
-# Production — compile then run
+# Web UI — opens browser automatically
+pnpm web          # starts Hono (port 3001) + Vite (port 5173) and opens browser
+pnpm web:server   # Hono server only
+pnpm web:client   # Vite dev server only
+
+# CLI production build
 pnpm build
 pnpm start
 
-# Compiled binary directly
+# Web production build
+pnpm build:web    # outputs to web/client/dist/
+
+# Compiled CLI binary directly
 node dist/index.js
 
 # CLI flags
@@ -61,6 +84,48 @@ See `workspaces.json.example` for the template.
 ## Project Structure
 
 ```
+web/
+├── server/
+│   ├── index.ts          Hono app entry — pre-warms workspace registry, starts on port 3001.
+│   ├── context.ts        WorkspaceRegistry: one WebClient + teamId per workspace, lazily initialised.
+│   │                     Imports loadWorkspaces() + createClient() from src/ directly.
+│   ├── routes/
+│   │   ├── workspaces.ts GET /api/workspaces
+│   │   ├── channels.ts   GET /api/workspaces/:ws/channels
+│   │   ├── messages.ts   GET /api/workspaces/:ws/channels/:channelId/messages
+│   │   ├── threads.ts    GET /api/workspaces/:ws/channels/:channelId/thread?ts=<threadTs>
+│   │   └── export.ts     GET /api/workspaces/:ws/channels/:channelId/export
+│   └── tsconfig.json     NodeNext module resolution (matches src/).
+└── client/
+    ├── index.html
+    ├── vite.config.ts    React + Tailwind v4 plugins; proxies /api → localhost:3001.
+    ├── tsconfig.json     Bundler module resolution (no .js extensions needed).
+    └── src/
+        ├── main.tsx
+        ├── App.tsx       Root layout: sidebar + message feed + thread panel state.
+        ├── index.css     Tailwind v4 import + CSS variable colour tokens (dark theme).
+        ├── types.ts      Client-side Channel/Message/Reaction/FileAttachment types.
+        ├── api/
+        │   └── client.ts Typed fetch wrappers for all API routes.
+        ├── utils/
+        │   └── mrkdwn.ts Ported mrkdwnToText() — pure browser-safe regex transformer.
+        ├── lib/
+        │   └── utils.ts  cn() helper (clsx + tailwind-merge).
+        ├── hooks/
+        │   ├── useChannels.ts  Fetches channel list on workspace change.
+        │   ├── useMessages.ts  Paginated message history; loadMore() prepends earlier messages.
+        │   └── useThread.ts    Fetches thread replies on threadTs change.
+        └── components/
+            ├── ui/             shadcn/ui primitives (button, badge, skeleton, select, sheet, etc.)
+            ├── WorkspaceSwitcher.tsx
+            ├── ChannelSidebar.tsx    Client-side search filtering over fetched channels.
+            ├── ChannelList.tsx
+            ├── MessageFeed.tsx       Day-separator dividers; scroll-to-bottom on channel change.
+            ├── MessageItem.tsx       Avatar initials, deterministic user colours, reactions, files.
+            ├── ThreadPanel.tsx       Sheet sliding from right; export button inside.
+            ├── ExportMenu.tsx        DropdownMenu → blob download (no page navigation).
+            └── LoadMoreButton.tsx
+
 src/
 ├── index.ts                  Entry point. Handles --help/--version, non-interactive subcommands,
 │                             and the interactive navigation loop.
