@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { ChannelList } from '@/components/ChannelList';
 import { useChannels } from '@/hooks/useChannels';
 import type { Channel } from '@/types';
@@ -31,8 +31,16 @@ export function ChannelSidebar({ workspace, selectedChannelId, onSelect }: Chann
                         placeholder="Search channels…"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        className="w-full bg-secondary/50 border border-border rounded text-sm pl-7 pr-3 py-1.5 outline-none focus:ring-1 focus:ring-ring text-foreground placeholder:text-muted-foreground"
+                        className="w-full bg-secondary/50 border border-border rounded text-sm pl-7 pr-7 py-1.5 outline-none focus:ring-1 focus:ring-ring text-foreground placeholder:text-muted-foreground"
                     />
+                    {search && (
+                        <button
+                            onClick={() => setSearch('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                        </button>
+                    )}
                 </div>
             </div>
             {error && (

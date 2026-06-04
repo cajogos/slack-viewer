@@ -51,7 +51,7 @@ export function MessageFeed({ workspace, channel, onThreadOpen, emojiMap }: Mess
             </div>
 
             <ScrollArea className="flex-1">
-                <div className="py-2">
+                <div className="py-2 flex flex-col justify-end min-h-full">
                     <LoadMoreButton hasMore={hasMore} isLoading={isLoading && messages.length > 0} onLoadMore={loadMore} />
                     {isLoading && messages.length === 0 && (
                         <div className="flex items-center justify-center py-12">

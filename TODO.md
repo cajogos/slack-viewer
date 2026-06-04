@@ -11,12 +11,9 @@
   (`/workspaces/:ws/channels/:channelId`) so the back button works and deep links are
   shareable. Prerequisite for the recently visited toolbar and for the bottom action log.
 
-- **Clear button on channel search bar** — small ✕ button inside the search input in
-  `ChannelSidebar` that resets the query. Appears only when the field is non-empty.
+- ~~**Clear button on channel search bar**~~ — done.
 
-- **Messages load anchored to bottom** — when a channel has few messages the content
-  sits at the top of the scroll area. It should be bottom-anchored like a real chat
-  client (flex-col-reverse or scroll to bottom immediately on load, before paint).
+- ~~**Messages load anchored to bottom**~~ — done.
 
 - **Bottom action log toolbar** — a persistent footer bar showing the latest actions
   taken in the session (channel opened, export downloaded, thread viewed, etc.).
