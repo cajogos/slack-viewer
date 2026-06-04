@@ -1,6 +1,6 @@
 import type { WebClient } from '@slack/web-api';
 import { withRateLimit } from './client.js';
-import { getDisplayName } from './users.js';
+import { getUserInfo } from './users.js';
 import type { Message, Reaction, FileAttachment } from '../types/slack.js';
 
 const SYSTEM_SUBTYPES = new Set(['channel_join', 'channel_leave', 'channel_topic']);
@@ -43,16 +43,26 @@ export async function fetchThread(
 
             let userId: string;
             let user: string;
+            let avatarUrl: string | undefined;
 
-            if (msg.subtype === 'bot_message') 
+            if (msg.subtype === 'bot_message')
             {
                 userId = 'bot';
                 user = msg.username ?? 'bot';
             }
-            else 
+            else
             {
                 userId = (msg.user as string | undefined) ?? '';
-                user = userId ? await getDisplayName(client, teamId, userId) : 'unknown';
+                if (userId)
+                {
+                    const info = await getUserInfo(client, teamId, userId);
+                    user = info.name;
+                    avatarUrl = info.imageUrl;
+                }
+                else
+                {
+                    user = 'unknown';
+                }
             }
 
             const reactions: Reaction[] = (msg.reactions ?? []).map(r => ({
@@ -73,6 +83,7 @@ export async function fetchThread(
                 userId,
                 user,
                 text: (msg.text as string | undefined) ?? '',
+                ...(avatarUrl != null && { avatarUrl }),
                 ...(reactions.length > 0 && { reactions }),
                 ...(files.length > 0 && { files }),
                 ...(msg.reply_count != null && { replyCount: msg.reply_count }),

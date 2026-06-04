@@ -7,6 +7,7 @@ import { messagesRoute } from './routes/messages.js';
 import { threadsRoute } from './routes/threads.js';
 import { exportRoute } from './routes/export.js';
 import { emojiRoute } from './routes/emoji.js';
+import { avatarsRoute } from './routes/avatars.js';
 
 const app = new Hono();
 
@@ -16,6 +17,7 @@ app.route('/api', messagesRoute);
 app.route('/api', threadsRoute);
 app.route('/api', exportRoute);
 app.route('/api', emojiRoute);
+app.route('/api', avatarsRoute);
 
 const port = Number(process.env['PORT'] ?? 3001);
 

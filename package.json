@@ -24,7 +24,10 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src tests",
-    "lint:fix": "eslint --fix src tests"
+    "lint:fix": "eslint --fix src tests",
+    "clear:avatars": "rm -rf data/avatars",
+    "clear:emoji": "rm -rf data/emoji data/emoji-images",
+    "clear:cache": "rm -rf data"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.4",

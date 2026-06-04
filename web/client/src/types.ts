@@ -14,6 +14,7 @@ export interface Message
     userId: string;
     user: string;
     text: string;
+    avatarUrl?: string;
     reactions?: Reaction[];
     files?: FileAttachment[];
     replyCount?: number;

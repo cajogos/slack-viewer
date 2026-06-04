@@ -1,7 +1,7 @@
 import type { WebClient } from '@slack/web-api';
 import { withRateLimit } from './client.js';
 
-type UserInfo = { name: string; deleted: boolean };
+type UserInfo = { name: string; deleted: boolean; imageUrl?: string };
 
 const cache = new Map<string, Map<string, UserInfo>>();
 
@@ -25,6 +25,7 @@ async function fetchUserInfo(
         info = {
             name: user?.profile?.display_name?.trim() || user?.real_name?.trim() || userId,
             deleted: user?.deleted ?? false,
+            imageUrl: (user?.profile as Record<string, unknown> | undefined)?.['image_72'] as string | undefined,
         };
     }
     catch

@@ -36,8 +36,11 @@ export function MessageItem({ message, onThreadClick, isReply = false, emojiMap 
 
     return (
         <div className={`flex gap-3 py-2 px-3 hover:bg-white/5 rounded-md group ${isReply ? 'ml-8' : ''}`}>
-            <div className={`flex-shrink-0 w-8 h-8 rounded flex items-center justify-center text-xs font-bold bg-white/10 ${colorClass}`}>
-                {initials(message.user)}
+            <div className={`flex-shrink-0 w-8 h-8 rounded overflow-hidden flex items-center justify-center text-xs font-bold bg-white/10 ${colorClass}`}>
+                {message.avatarUrl
+                    ? <img src={message.avatarUrl} alt={message.user} className="w-full h-full object-cover" />
+                    : initials(message.user)
+                }
             </div>
             <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2 mb-0.5">

@@ -31,6 +31,10 @@ messagesRoute.get('/workspaces/:ws/channels/:channelId/messages', async (c) =>
         let text = await resolveMentionIds(msg.text, ctx.client, ctx.teamId);
         text = await resolveChannelIds(text, ctx.client);
         msg.text = text;
+        if (msg.avatarUrl && msg.userId !== 'bot')
+        {
+            msg.avatarUrl = `/api/workspaces/${encodeURIComponent(ws)}/avatars/${encodeURIComponent(msg.userId)}`;
+        }
     }));
 
     return c.json(result);
