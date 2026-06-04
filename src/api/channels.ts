@@ -1,6 +1,6 @@
 import type { WebClient } from '@slack/web-api';
 import { withRateLimit } from './client.js';
-import { getDisplayName } from './users.js';
+import { getDisplayName, getUserInfo } from './users.js';
 import type { Channel } from '../types/slack.js';
 
 async function sleep(ms: number): Promise<void> 
@@ -18,6 +18,7 @@ export async function listChannels(client: WebClient, teamId: string): Promise<C
     dmUserId?: string
     memberCount?: number
     isMember: boolean
+    deleted?: boolean
   }
 
   const raw: RawEntry[] = [];
@@ -72,18 +73,25 @@ export async function listChannels(client: WebClient, teamId: string): Promise<C
       }
   } while (cursor);
 
-  // Resolve all DM display names in parallel
+  // Resolve all DM display names in parallel; mark deleted users
   const dmEntries = raw.filter(e => e.name === null);
   await Promise.all(
-      dmEntries.map(async entry => 
+      dmEntries.map(async entry =>
       {
-          entry.name = entry.dmUserId
-              ? await getDisplayName(client, teamId, entry.dmUserId)
-              : entry.id;
+          if (entry.dmUserId)
+          {
+              const info = await getUserInfo(client, teamId, entry.dmUserId);
+              entry.name = info.name;
+              entry.deleted = info.deleted;
+          }
+          else
+          {
+              entry.name = entry.id;
+          }
       }),
   );
 
-  const channels: Channel[] = raw.map(e => ({
+  const channels: Channel[] = raw.filter(e => !e.deleted).map(e => ({
       id: e.id,
       type: e.type,
       name: e.name!,
