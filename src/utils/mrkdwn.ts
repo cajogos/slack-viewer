@@ -1,6 +1,15 @@
 import type { WebClient } from '@slack/web-api';
+import * as nodeEmoji from 'node-emoji';
 import { getDisplayName } from '../api/users.js';
 import { getChannelName } from '../api/channels.js';
+
+// Slack shortcodes that differ from node-emoji's key names
+const SLACK_EMOJI_ALIASES: Record<string, string> = {
+    thumbsup: '+1',
+    thumbsdown: '-1',
+    thinking_face: 'thinking',
+    face_with_rolling_eyes: 'roll_eyes',
+};
 
 type Format = 'plain' | 'markdown' | 'html'
 
@@ -82,6 +91,27 @@ export function mrkdwnToText(text: string, opts?: { format?: Format }): string
         return `#${channelId}`;
     });
 
+    // Standard emoji shortcodes → Unicode BEFORE bold/italic so names with underscores
+    // (e.g. :partying_face:) can't be corrupted by the italic regex.
+    // In HTML mode, operate only on text segments so code blocks are left untouched.
+    const resolveEmoji = (name: string): string | undefined =>
+        nodeEmoji.get(SLACK_EMOJI_ALIASES[name] ?? name);
+
+    if (fmt === 'html')
+    {
+        result = result.replace(/(?<=>|^)([^<]*)(?=<|$)/g, (_, segment: string) =>
+            segment.replace(/:([a-z0-9_+\-]+):/g, (match, name: string) =>
+                resolveEmoji(name) ?? match,
+            ),
+        );
+    }
+    else
+    {
+        result = result.replace(/:([a-z0-9_+\-]+):/g, (match, name: string) =>
+            resolveEmoji(name) ?? match,
+        );
+    }
+
     // Bold: *text* — processed before user mentions so @display_names aren't corrupted
     result = result.replace(/\*([^*\n]+)\*/g, (_, bold: string) =>
     {
@@ -96,8 +126,9 @@ export function mrkdwnToText(text: string, opts?: { format?: Format }): string
         return bold;
     });
 
-    // Italic: _text_
-    result = result.replace(/_([^_\n]+)_/g, (_, italic: string) =>
+    // Italic: _text_ — only at word boundaries so underscores inside :emoji_names:
+    // or snake_case identifiers aren't treated as italic markers.
+    result = result.replace(/(?<!\w)_([^_\n]+)_(?!\w)/g, (_, italic: string) =>
     {
         if (fmt === 'html')
         {
