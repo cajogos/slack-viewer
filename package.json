@@ -12,7 +12,7 @@
   "scripts": {
     "cli": "tsx src/index.ts",
     "dev": "tsx src/index.ts",
-    "web": "concurrently --kill-others-on-fail -n server,vite -c cyan,yellow \"tsx web/server/index.ts\" \"vite web/client --open\"",
+    "web": "concurrently --kill-others-on-fail -n server,vite -c cyan,yellow \"tsx web/server/index.ts\" \"vite web/client\"",
     "web:server": "tsx web/server/index.ts",
     "web:client": "vite web/client",
     "build": "tsc",
