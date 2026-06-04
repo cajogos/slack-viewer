@@ -19,17 +19,23 @@ export function MessageFeed({ workspace, channel, onThreadOpen }: MessageFeedPro
 {
     const { messages, hasMore, isLoading, error, loadMore } = useMessages(workspace, channel.id);
     const bottomRef = useRef<HTMLDivElement>(null);
-    const prevChannelId = useRef<string | null>(null);
+    const shouldScrollRef = useRef(false);
 
-    // Scroll to bottom when channel changes (new channel selected)
+    // Arm the scroll flag whenever the channel changes
     useEffect(() =>
     {
-        if (prevChannelId.current !== channel.id)
+        shouldScrollRef.current = true;
+    }, [channel.id]);
+
+    // Execute the scroll once messages have loaded
+    useEffect(() =>
+    {
+        if (shouldScrollRef.current && messages.length > 0)
         {
-            prevChannelId.current = channel.id;
+            shouldScrollRef.current = false;
             bottomRef.current?.scrollIntoView({ behavior: 'instant' });
         }
-    }, [channel.id, messages]);
+    }, [messages]);
 
     return (
         <div className="flex flex-col h-full">
